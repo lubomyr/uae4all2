@@ -1,0 +1,8 @@
+src-v7a
+src-v7a-neon
+src-v7a-hard
+src-v7a-neon-hard
+src-x86
+src-mips
+*.o
+libapplication*.so
