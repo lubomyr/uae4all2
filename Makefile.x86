@@ -1,0 +1,173 @@
+MORE_CFLAGS += -DGP2X -DANDROIDSDL -DDOUBLEBUFFER
+
+NAME   = uae4all-x86
+O      = o
+RM     = rm -f
+
+PROG   = $(NAME)
+
+all: $(PROG)
+
+FAME_CORE=1
+FAME_CORE_C=1
+#SDLSOUND=1
+NEWSDLSOUND=1
+#DEBUG=1
+#TEXT_GUI=1
+GUICHAN_GUI=1
+ANDROIDSDL=1
+
+DEFAULT_CFLAGS = `sdl-config --cflags`
+
+#LDFLAGS = -lSDL  -lpthread  -lz -lSDL_image -lpng12 
+
+MORE_CFLAGS +=   -Isrc-x86 -Isrc-x86/gp2x -Isrc-x86/vkbd -Isrc-x86/menu -Isrc-x86/include -Isrc-x86/gp2x/menu -fomit-frame-pointer -Wno-unused -Wno-format -DUSE_SDL -DGCCCONSTFUNC="__attribute__((const))" -DUSE_UNDERSCORE -fno-exceptions -DUNALIGNED_PROFITABLE -DOPTIMIZED_FLAGS -DSHM_SUPPORT_LINKS=0 -DOS_WITHOUT_MEMORY_MANAGEMENT -DVKBD_ALWAYS -DUSE_UAE4ALL_VKBD
+#-DMENU_MUSIC
+
+MORE_CFLAGS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
+
+#MORE_CFLAGS += -msoft-float -ffast-math
+MORE_CFLAGS += -ffast-math
+ifndef DEBUG
+#MORE_CFLAGS += -O3
+MORE_CFLAGS += -fstrict-aliasing -fexpensive-optimizations
+MORE_CFLAGS += -fweb -frename-registers -fomit-frame-pointer
+#MORE_CFLAGS += -falign-functions=32 -falign-loops -falign-labels -falign-jumps
+MORE_CFLAGS += -falign-functions=32
+MORE_CFLAGS += -finline -finline-functions -fno-builtin
+else
+MORE_CFLAGS += -ggdb
+endif
+
+ASFLAGS += -mfloat-abi=soft
+
+MORE_CFLAGS+= -DUSE_AUTOCONFIG
+MORE_CFLAGS+= -DUSE_ZFILE
+MORE_CFLAGS+= -DFAME_INTERRUPTS_PATCH
+# Turrican3 becomes unstable if this is not enabled
+MORE_CFLAGS+= -DSAFE_MEMORY_ACCESS
+#MORE_CFLAGS+= -DDEBUG_SAVESTATE
+
+CFLAGS  = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
+
+OBJS =	\
+	src-x86/audio.o \
+	src-x86/autoconf.o \
+	src-x86/blitfunc.o \
+	src-x86/blittable.o \
+	src-x86/blitter.o \
+	src-x86/cfgfile.o \
+	src-x86/cia.o \
+	src-x86/compiler.o \
+	src-x86/savedisk.o \
+	src-x86/savestate.o \
+	src-x86/custom.o \
+	src-x86/disk.o \
+	src-x86/drawing.o \
+	src-x86/ersatz.o \
+	src-x86/expansion.o \
+	src-x86/filesys.o \
+	src-x86/fsdb.o \
+	src-x86/fsdb_unix.o \
+	src-x86/fsusage.o \
+	src-x86/gfxutil.o \
+	src-x86/hardfile.o \
+	src-x86/keybuf.o \
+	src-x86/main.o \
+	src-x86/memory.o \
+	src-x86/missing.o \
+	src-x86/native2amiga.o \
+	src-x86/gui.o \
+	src-x86/od-joy.o \
+	src-x86/scsi-none.o \
+	src-x86/sdlgfx.o \
+	src-x86/writelog.o \
+	src-x86/zfile.o \
+	src-x86/menu/fade.o \
+	src-x86/vkbd/vkbd.o \
+	src-x86/gp2x/gp2x.o \
+	src-x86/gp2x/inputmode.o \
+	src-x86/gp2x/menu/menu_helper.o \
+	src-x86/gp2x/menu/menu_config.o \
+	src-x86/gp2x/menu/menu.o
+ifdef GUICHAN_GUI
+CFLAGS+= -DUSE_GUICHAN
+OBJS += src-x86/menu_guichan/menu_guichan.o \
+	src-x86/menu_guichan/menuTabMain.o \
+	src-x86/menu_guichan/menuTabFloppy.o \
+	src-x86/menu_guichan/menuTabHD.o \
+	src-x86/menu_guichan/menuTabDisplaySound.o \
+	src-x86/menu_guichan/menuTabSavestates.o \
+	src-x86/menu_guichan/menuTabControl.o \
+	src-x86/menu_guichan/menuTabCustomCtrl.o \
+	src-x86/menu_guichan/menuMessage.o \
+	src-x86/menu_guichan/menuLoad_guichan.o \
+	src-x86/menu_guichan/menuConfigManager.o \
+	src-x86/menu_guichan/uaeradiobutton.o \
+	src-x86/menu_guichan/uaedropdown.o
+ifdef ANDROIDSDL
+OBJS += src-x86/menu_guichan/menuTabOnScreen.o
+endif
+ifdef PANDORA
+OBJS += src-x86/menu_guichan/sdltruetypefont.o
+endif
+else
+OBJS += src-x86/gp2x/menu/menu_fileinfo.o \
+	src-x86/gp2x/menu/menu_load.o \
+	src-x86/gp2x/menu/menu_main.o \
+	src-x86/gp2x/menu/menu_savestates.o \
+	src-x86/gp2x/menu/menu_misc.o \
+	src-x86/gp2x/menu/menu_controls.o \
+	src-x86/gp2x/menu/menu_display.o \
+	src-x86/gp2x/menu/menu_memory_disk.o
+endif
+
+ifdef SDLSOUND
+CFLAGS+= -DUSE_SDLSOUND
+OBJS += src-x86/sound.o
+else
+ifdef NEWSDLSOUND
+OBJS += src-x86/sound_sdl_new.o
+else
+OBJS += src-x86/sound_gp2x.o
+endif
+endif
+
+ifdef FAME_CORE
+ifdef FAME_CORE_C
+CFLAGS+=-DUSE_FAME_CORE -DUSE_FAME_CORE_C -DFAME_IRQ_CLOCKING -DFAME_CHECK_BRANCHES -DFAME_EMULATE_TRACE -DFAME_DIRECT_MAPPING -DFAME_BYPASS_TAS_WRITEBACK -DFAME_ACCURATE_TIMING -DFAME_GLOBAL_CONTEXT -DFAME_FETCHBITS=8 -DFAME_DATABITS=8 -DFAME_NO_RESTORE_PC_MASKED_BITS
+CFLAGS+=-DWITH_TESTMODE
+
+src-x86/m68k/fame/famec.o: src-x86/m68k/fame/famec.cpp
+OBJS += src-x86/m68k/fame/famec.o
+else
+CFLAGS+=-DUSE_FAME_CORE
+src-x86/m68k/fame/fame.o: src-x86/m68k/fame/fame.asm
+	nasm src-x86/m68k/fame/fame.asm
+OBJS += src-x86/m68k/fame/fame.o
+endif
+OBJS += src-x86/m68k/fame/m68k_intrf.o
+OBJS += src-x86/m68k/m68k_cmn_intrf.o
+else
+OBJS += \
+	src-x86/m68k/uae/newcpu.o \
+	src-x86/m68k/uae/readcpu.o \
+	src-x86/m68k/uae/cpudefs.o \
+	src-x86/m68k/uae/fpp.o \
+	src-x86/m68k/uae/cpustbl.o \
+	src-x86/m68k/uae/cpuemu.o
+endif
+
+CPPFLAGS  = $(CFLAGS)
+
+$(PROG): $(OBJS)
+	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS) $(LDFLAGS) -lpng
+ifndef DEBUG
+	$(STRIP) $(PROG)
+endif
+
+run: $(PROG)
+	./$(PROG)
+
+clean:
+	$(RM) $(PROG) $(OBJS)

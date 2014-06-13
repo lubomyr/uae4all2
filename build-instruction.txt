@@ -1,0 +1,14 @@
+Build instructions
+
+1. Download&install androidsdl
+
+cd ~
+git clone git://github.com/pelya/commandergenius
+
+2. unpack uae4all2-sdl-src.tar.gz into ~/commandergenius/project/jni/application
+
+cd ~/commandergenius/project/jni/application
+rm src
+ln -s uae4all2 src
+cd ~/commandergenius
+./build.sh

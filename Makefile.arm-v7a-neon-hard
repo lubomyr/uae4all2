@@ -1,0 +1,175 @@
+MORE_CFLAGS += -DGP2X -DANDROIDSDL -DDOUBLEBUFFER
+
+NAME   = uae4all-v7a-neon-hard
+O      = o
+RM     = rm -f
+
+PROG   = $(NAME)
+
+all: $(PROG)
+
+FAME_CORE=1
+FAME_CORE_C=1
+#SDLSOUND=1
+NEWSDLSOUND=1
+#DEBUG=1
+#TEXT_GUI=1
+GUICHAN_GUI=1
+ANDROIDSDL=1
+
+DEFAULT_CFLAGS = `sdl-config --cflags`
+
+#LDFLAGS = -lSDL  -lpthread  -lz -lSDL_image -lpng12 
+
+MORE_CFLAGS +=   -Isrc-v7a-neon-hard -Isrc-v7a-neon-hard/gp2x -Isrc-v7a-neon-hard/vkbd -Isrc-v7a-neon-hard/menu -Isrc-v7a-neon-hard/include -Isrc-v7a-neon-hard/gp2x/menu -fomit-frame-pointer -Wno-unused -Wno-format -DUSE_SDL -DGCCCONSTFUNC="__attribute__((const))" -DUSE_UNDERSCORE -fno-exceptions -DUNALIGNED_PROFITABLE -DOPTIMIZED_FLAGS -DSHM_SUPPORT_LINKS=0 -DOS_WITHOUT_MEMORY_MANAGEMENT -DVKBD_ALWAYS -DUSE_UAE4ALL_VKBD
+MORE_CFLAGS += -DUSE_ARMV7 -DUSE_ARMNEON 
+#-DMENU_MUSIC
+
+MORE_CFLAGS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
+
+#MORE_CFLAGS += -msoft-float -ffast-math
+MORE_CFLAGS += -ffast-math
+ifndef DEBUG
+#MORE_CFLAGS += -O3
+MORE_CFLAGS += -fstrict-aliasing -mstructure-size-boundary=32 -fexpensive-optimizations
+MORE_CFLAGS += -fweb -frename-registers -fomit-frame-pointer
+#MORE_CFLAGS += -falign-functions=32 -falign-loops -falign-labels -falign-jumps
+MORE_CFLAGS += -falign-functions=32
+MORE_CFLAGS += -finline -finline-functions -fno-builtin
+else
+MORE_CFLAGS += -ggdb
+endif
+
+ASFLAGS += -mfloat-abi=hard -mfpu=neon
+
+MORE_CFLAGS+= -DUSE_AUTOCONFIG
+MORE_CFLAGS+= -DUSE_ZFILE
+# Turrican3 becomes unstable if this is not enabled
+MORE_CFLAGS+= -DSAFE_MEMORY_ACCESS
+#MORE_CFLAGS+= -DDEBUG_SAVESTATE
+
+CFLAGS  = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
+
+OBJS =	\
+	src-v7a-neon-hard/audio.o \
+	src-v7a-neon-hard/autoconf.o \
+	src-v7a-neon-hard/blitfunc.o \
+	src-v7a-neon-hard/blittable.o \
+	src-v7a-neon-hard/blitter.o \
+	src-v7a-neon-hard/cfgfile.o \
+	src-v7a-neon-hard/cia.o \
+	src-v7a-neon-hard/savedisk.o \
+	src-v7a-neon-hard/savestate.o \
+	src-v7a-neon-hard/custom.o \
+	src-v7a-neon-hard/disk.o \
+	src-v7a-neon-hard/drawing.o \
+	src-v7a-neon-hard/ersatz.o \
+	src-v7a-neon-hard/expansion.o \
+	src-v7a-neon-hard/filesys.o \
+	src-v7a-neon-hard/fsdb.o \
+	src-v7a-neon-hard/fsdb_unix.o \
+	src-v7a-neon-hard/fsusage.o \
+	src-v7a-neon-hard/gfxutil.o \
+	src-v7a-neon-hard/hardfile.o \
+	src-v7a-neon-hard/keybuf.o \
+	src-v7a-neon-hard/main.o \
+	src-v7a-neon-hard/memory.o \
+	src-v7a-neon-hard/missing.o \
+	src-v7a-neon-hard/native2amiga.o \
+	src-v7a-neon-hard/neon_helper.o \
+	src-v7a-neon-hard/gui.o \
+	src-v7a-neon-hard/od-joy.o \
+	src-v7a-neon-hard/scsi-none.o \
+	src-v7a-neon-hard/sdlgfx.o \
+	src-v7a-neon-hard/writelog.o \
+	src-v7a-neon-hard/zfile.o \
+	src-v7a-neon-hard/menu/fade.o \
+	src-v7a-neon-hard/vkbd/vkbd.o \
+	src-v7a-neon-hard/gp2x/memcpy.o \
+	src-v7a-neon-hard/gp2x/memset.o \
+	src-v7a-neon-hard/gp2x/gp2x.o \
+	src-v7a-neon-hard/gp2x/inputmode.o \
+	src-v7a-neon-hard/gp2x/menu/menu_helper.o \
+	src-v7a-neon-hard/gp2x/menu/menu_config.o \
+	src-v7a-neon-hard/gp2x/menu/menu.o
+ifdef GUICHAN_GUI
+CFLAGS+= -DUSE_GUICHAN
+OBJS += src-v7a-neon-hard/menu_guichan/menu_guichan.o \
+	src-v7a-neon-hard/menu_guichan/menuTabMain.o \
+	src-v7a-neon-hard/menu_guichan/menuTabFloppy.o \
+	src-v7a-neon-hard/menu_guichan/menuTabHD.o \
+	src-v7a-neon-hard/menu_guichan/menuTabDisplaySound.o \
+	src-v7a-neon-hard/menu_guichan/menuTabSavestates.o \
+	src-v7a-neon-hard/menu_guichan/menuTabControl.o \
+	src-v7a-neon-hard/menu_guichan/menuTabCustomCtrl.o \
+	src-v7a-neon-hard/menu_guichan/menuMessage.o \
+	src-v7a-neon-hard/menu_guichan/menuLoad_guichan.o \
+	src-v7a-neon-hard/menu_guichan/menuConfigManager.o \
+	src-v7a-neon-hard/menu_guichan/uaeradiobutton.o \
+	src-v7a-neon-hard/menu_guichan/uaedropdown.o
+ifdef ANDROIDSDL
+OBJS += src-v7a-neon-hard/menu_guichan/menuTabOnScreen.o
+#OBJS += src-v7a-neon-hard/menu_guichan/guichan_vkeybd.o
+endif
+ifdef PANDORA
+OBJS += src-v7a-neon-hard/menu_guichan/sdltruetypefont.o
+endif
+else
+OBJS += src-v7a-neon-hard/gp2x/menu/menu_fileinfo.o \
+	src-v7a-neon-hard/gp2x/menu/menu_load.o \
+	src-v7a-neon-hard/gp2x/menu/menu_main.o \
+	src-v7a-neon-hard/gp2x/menu/menu_savestates.o \
+	src-v7a-neon-hard/gp2x/menu/menu_misc.o \
+	src-v7a-neon-hard/gp2x/menu/menu_controls.o \
+	src-v7a-neon-hard/gp2x/menu/menu_display.o \
+	src-v7a-neon-hard/gp2x/menu/menu_memory_disk.o
+endif
+ifdef SDLSOUND
+CFLAGS+= -DUSE_SDLSOUND
+OBJS += src-v7a-neon-hard/sound.o
+else
+ifdef NEWSDLSOUND
+OBJS += src-v7a-neon-hard/sound_sdl_new.o
+else
+OBJS += src-v7a-neon-hard/sound_gp2x.o
+endif
+endif
+
+ifdef FAME_CORE
+ifdef FAME_CORE_C
+CFLAGS+=-DUSE_FAME_CORE -DUSE_FAME_CORE_C -DFAME_IRQ_CLOCKING -DFAME_CHECK_BRANCHES -DFAME_EMULATE_TRACE -DFAME_DIRECT_MAPPING -DFAME_BYPASS_TAS_WRITEBACK -DFAME_ACCURATE_TIMING -DFAME_GLOBAL_CONTEXT -DFAME_FETCHBITS=8 -DFAME_DATABITS=8 -DFAME_NO_RESTORE_PC_MASKED_BITS
+CFLAGS+=-DWITH_TESTMODE
+
+src-v7a-neon-hard/m68k/fame/famec.o: src-v7a-neon-hard/m68k/fame/famec.cpp
+OBJS += src-v7a-neon-hard/m68k/fame/famec.o
+else
+CFLAGS+=-DUSE_FAME_CORE
+src-v7a-neon-hard/m68k/fame/fame.o: src-v7a-neon-hard/m68k/fame/fame.asm
+	nasm src-v7a-neon-hard/m68k/fame/fame.asm
+OBJS += src-v7a-neon-hard/m68k/fame/fame.o
+endif
+OBJS += src-v7a-neon-hard/m68k/fame/m68k_intrf.o
+OBJS += src-v7a-neon-hard/m68k/m68k_cmn_intrf.o
+else
+OBJS += \
+	src-v7a-neon-hard/m68k/uae/newcpu.o \
+	src-v7a-neon-hard/m68k/uae/readcpu.o \
+	src-v7a-neon-hard/m68k/uae/cpudefs.o \
+	src-v7a-neon-hard/m68k/uae/fpp.o \
+	src-v7a-neon-hard/m68k/uae/cpustbl.o \
+	src-v7a-neon-hard/m68k/uae/cpuemu.o
+endif
+
+CPPFLAGS  = $(CFLAGS)
+
+$(PROG): $(OBJS)
+	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS) $(LDFLAGS) -lpng
+ifndef DEBUG
+	$(STRIP) $(PROG)
+endif
+
+run: $(PROG)
+	./$(PROG)
+
+clean:
+	$(RM) $(PROG) $(OBJS)

@@ -1,0 +1,5 @@
+	public static int TouchscreenKeyboardSize = 1;
+	public static final int TOUCHSCREEN_KEYBOARD_CUSTOM = 4;
+	public static int TouchscreenKeyboardDrawSize = 0;
+	public static int TouchscreenKeyboardTheme = 2;
+	public static int TouchscreenKeyboardTransparency = 1;
