@@ -130,6 +130,7 @@ int mainMenu_pos_x_button6 = 378;
 int mainMenu_pos_y_button6 = 142;
 int menuLoad_extfilter=1;
 int mainMenu_quickSwitch=0;
+int mainMenu_FloatingJoystick=0;
 #endif
 
 void SetDefaultMenuSettings(int general)
@@ -882,7 +883,7 @@ int saveconfig(int general)
 	snprintf((char*)buffer, 255, "custom_R=%d\n",mainMenu_custom_R);
 	fputs(buffer,f);
 	snprintf((char*)buffer, 255, "cpu=%d\n",mainMenu_CPU_model);
-  fputs(buffer,f);
+	fputs(buffer,f);
 	snprintf((char*)buffer, 255, "chipset=%d\n",mainMenu_chipset);
 	fputs(buffer,f);
 	snprintf((char*)buffer, 255, "cpu=%d\n",-mainMenu_CPU_speed);
@@ -998,6 +999,8 @@ int saveconfig(int general)
 	snprintf((char*)buffer, 255, "pos_y_button6=%d\n",mainMenu_pos_y_button6);
  	fputs(buffer,f);
 	snprintf((char*)buffer, 255, "quick_switch=%d\n",mainMenu_quickSwitch);
+ 	fputs(buffer,f);
+	snprintf((char*)buffer, 255, "FloatingJoystick=%d\n",mainMenu_FloatingJoystick);
  	fputs(buffer,f);
 #endif
 	fclose(f);
@@ -1246,6 +1249,7 @@ void loadconfig(int general)
 		fscanf(f,"pos_x_button6=%d\n",&mainMenu_pos_x_button6);
 		fscanf(f,"pos_y_button6=%d\n",&mainMenu_pos_y_button6);
 		fscanf(f,"quick_switch=%d\n",&mainMenu_quickSwitch);
+		fscanf(f,"FloatingJoystick=%d\n",&mainMenu_FloatingJoystick);
 #endif
 	
 		fclose(f);

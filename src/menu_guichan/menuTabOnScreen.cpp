@@ -42,6 +42,7 @@ namespace widgets
   gcn::CheckBox* checkBox_onscreen_button5;
   gcn::CheckBox* checkBox_onscreen_button6;
   gcn::CheckBox* checkBox_onscreen_custompos;
+  gcn::CheckBox* checkBox_FloatingJoystick;
   gcn::Button* button_onscreen_pos;
   gcn::Button* button_onscreen_ok;
   gcn::Button* button_onscreen_reset;
@@ -139,6 +140,12 @@ namespace widgets
 	       else
 		  mainMenu_custom_position=0;
 	     }
+	     if (actionEvent.getSource() == checkBox_FloatingJoystick)
+	       if (checkBox_FloatingJoystick->isSelected())
+		  mainMenu_FloatingJoystick=1;
+	       else
+		  mainMenu_FloatingJoystick=0;	      
+
 	     show_settings_TabOnScreen();
       }
   };
@@ -264,8 +271,13 @@ namespace widgets
 	checkBox_onscreen_custompos->setPosition(170,140);
 	checkBox_onscreen_custompos->setId("CustomPos");
 	checkBox_onscreen_custompos->addActionListener(onScreenCheckBoxActionListener);
+	checkBox_FloatingJoystick = new gcn::CheckBox("Floating Joystick");
+	checkBox_FloatingJoystick->setPosition(10,180);
+	checkBox_FloatingJoystick->setId("FloatJoy");
+	checkBox_FloatingJoystick->addActionListener(onScreenCheckBoxActionListener);
+
 	button_onscreen_pos = new gcn::Button("Position Setup");
-	button_onscreen_pos->setPosition(10,180);
+	button_onscreen_pos->setPosition(170,180);
 	button_onscreen_pos->setBaseColor(baseCol);
 	setupPosButtonActionListener = new SetupPosButtonActionListener();
 	button_onscreen_pos->addActionListener(setupPosButtonActionListener);
@@ -389,6 +401,7 @@ namespace widgets
 	tab_onscreen->add(checkBox_onscreen_button5);
 	tab_onscreen->add(checkBox_onscreen_button6);
 	tab_onscreen->add(checkBox_onscreen_custompos);
+	tab_onscreen->add(checkBox_FloatingJoystick);	
 	tab_onscreen->add(button_onscreen_pos);
 	tab_onscreen->add(group_quickSwitch);	
   	tab_onscreen->setSize(600,280);
@@ -408,6 +421,7 @@ namespace widgets
 	delete checkBox_onscreen_button5;
 	delete checkBox_onscreen_button6;
 	delete checkBox_onscreen_custompos;
+	delete checkBox_FloatingJoystick;
 	delete button_onscreen_pos;
 	delete button_onscreen_ok;
 	delete button_onscreen_reset;
@@ -478,6 +492,10 @@ namespace widgets
 	      checkBox_onscreen_custompos->setSelected(false);
 	else if (mainMenu_custom_position==1)
 	      checkBox_onscreen_custompos->setSelected(true);
+	if (mainMenu_FloatingJoystick)
+	    checkBox_FloatingJoystick->setSelected(true);
+	else
+	    checkBox_FloatingJoystick->setSelected(false);
 	if (mainMenu_quickSwitch==0)
 	{
 	  radioButton_quickSwitch_off->setSelected(true);

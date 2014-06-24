@@ -53,6 +53,7 @@ void extractFileName(char * str,char *buffer)
 #ifdef ANDROIDSDL
 void update_onscreen()
 {
+	SDL_ANDROID_SetScreenKeyboardFloatingJoystick(mainMenu_FloatingJoystick);
 	if (mainMenu_case != MAIN_MENU_CASE_DISPLAY && mainMenu_case != MAIN_MENU_CASE_MEMDISK && mainMenu_onScreen==0)
 	{
 	  SDL_ANDROID_SetScreenKeyboardShown(0);
@@ -110,7 +111,7 @@ void update_onscreen()
 	    SDL_ANDROID_SetScreenKeyboardButtonShown(SDL_ANDROID_SCREENKEYBOARD_BUTTON_3, mainMenu_onScreen_button4);
 	    SDL_ANDROID_SetScreenKeyboardButtonShown(SDL_ANDROID_SCREENKEYBOARD_BUTTON_4, mainMenu_onScreen_button5);
 	    SDL_ANDROID_SetScreenKeyboardButtonShown(SDL_ANDROID_SCREENKEYBOARD_BUTTON_5, mainMenu_onScreen_button6);
-	}  
+	}
 }
 #endif
 

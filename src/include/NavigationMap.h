@@ -223,7 +223,7 @@ NavigationMap navMap[] =
   { "CtrlRight", "CtrlY", "DPadCustom", "---", "---" },
   
 #ifdef ANDROIDSDL
-    // Tab Custom Control
+    // Tab On-Screen Control
   { "OnScrCtrl", "QckSwtch2", "OnScrButton3", "tabbedArea", "OnScrTextInput" },
   { "OnScrButton3", "OnScrCtrl", "QckSwtchOff", "tabbedArea", "OnScrButton4" },
   { "OnScrTextInput", "QckSwtch2", "OnScrButton4", "OnScrCtrl", "OnScrDpad" },
@@ -232,11 +232,12 @@ NavigationMap navMap[] =
   { "OnScrButton5", "OnScrDpad", "QckSwtchOff", "OnScrButton4", "OnScrButton6" },
   { "OnScrButton1", "OnScrButton6", "OnScrButton6", "OnScrDpad", "OnScrButton2" },
   { "OnScrButton6", "OnScrButton1", "OnScrButton1", "OnScrButton5", "CustomPos" },
-  { "OnScrButton2", "CustomPos", "CustomPos", "OnScrButton1", "Reset" },
+  { "OnScrButton2", "CustomPos", "CustomPos", "OnScrButton1", "FloatJoy" },
   { "CustomPos", "OnScrButton2", "OnScrButton2", "OnScrButton6", "Reset" },
   { "QckSwtchOff", "OnScrButton4", "QckSwtch1", "tabbedArea", "ConfManager" },
   { "QckSwtch1", "QckSwtchOff", "QckSwtch2", "tabbedArea", "Save Config" },
   { "QckSwtch2", "QckSwtch1", "OnScrCtrl", "tabbedArea", "A500" },
+  { "FloatJoy", "CustomPos", "CustomPos", "OnScrButton2", "Reset" },
 #endif 
   
   // File dialog
