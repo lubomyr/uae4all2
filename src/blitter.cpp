@@ -472,19 +472,50 @@ static _INLINE_ void actually_do_blit(void)
     blitter_done_notify ();
 }
 
-void blitter_handler(void)
-{
-    if (!dmaen(DMA_BLITTER)) {
-	eventtab[ev_blitter].active = 1;
-	eventtab[ev_blitter].oldcycles = get_cycles ();
-	eventtab[ev_blitter].evtime = 10 * CYCLE_UNIT + get_cycles (); /* wait a little */
-	return; /* gotta come back later. */
-    }
-    actually_do_blit();
+static int blit_slowdown;
+static unsigned int ddat1use, ddat2use;
 
+static void blitter_done (void)
+{
+    ddat1use = ddat2use = 0;
+    bltstate = BLT_done;
+    blitter_done_notify ();
     INTREQ(0x8040);
     eventtab[ev_blitter].active = 0;
     unset_special (SPCFLAG_BLTNASTY);
+#ifdef BLITTER_DEBUG
+    write_log ("vpos=%d, cycles %d, missed %d, total %d\n",
+	vpos, blit_cyclecounter, blit_misscyclecounter, blit_cyclecounter + blit_misscyclecounter);
+#endif
+}
+
+void blitter_handler(void)
+{
+    static int blitter_stuck;
+    if (!dmaen (DMA_BLITTER)) {
+	eventtab[ev_blitter].active = 1;
+	eventtab[ev_blitter].oldcycles = get_cycles ();
+	eventtab[ev_blitter].evtime = 10 * CYCLE_UNIT + get_cycles (); /* wait a little */
+	blitter_stuck++;
+	if (blitter_stuck < 20000)
+	    return; /* gotta come back later. */
+	/* "free" blitter in immediate mode if it has been "stuck" ~3 frames
+	 * fixes some JIT game incompatibilities
+	 */
+	write_log ("Blitter force-unstuck!\n");
+    }
+    blitter_stuck = 0;
+    if (blit_slowdown > 0) {
+	eventtab[ev_blitter].active = 1;
+	eventtab[ev_blitter].oldcycles = get_cycles ();
+	eventtab[ev_blitter].evtime = blit_slowdown * CYCLE_UNIT + get_cycles ();
+	blit_slowdown = -1;
+	return;
+    }
+
+    actually_do_blit ();
+
+    blitter_done ();
 }
 
 static long int blit_cycles;
