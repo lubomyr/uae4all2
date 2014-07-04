@@ -59,23 +59,24 @@ NavigationMap navMap[] =
 #ifdef ANDROIDSDL
   { "Chip2Mb", "56MHz", "Slow1Mb", "Chip1Mb", "Chip4Mb" },
   { "Chip4Mb", "112MHz", "Slow1.5Mb", "Chip2Mb", "Chip8Mb" },
-  { "Chip8Mb", "112MHz", "Slow1.5Mb", "Chip4Mb", "ConfManager" },
+  { "Chip8Mb", "112MHz", "Slow1.8Mb", "Chip4Mb", "ConfManager" },
 #else
   { "Chip2Mb", "28MHz", "Slow1Mb", "Chip1Mb", "Chip4Mb" },
   { "Chip4Mb", "PandSpeed", "Slow1.5Mb", "Chip2Mb", "Chip8Mb" },
-  { "Chip8Mb", "PandSpeed", "Slow1.5Mb", "Chip4Mb", "ConfManager" },
+  { "Chip8Mb", "PandSpeed", "Slow1.8Mb", "Chip4Mb", "ConfManager" },
 #endif
 
   { "SlowMemOff", "512Kb", "FastMemOff", "tabbedArea", "Slow512Kb" },
   { "Slow512Kb", "Chip1Mb", "Fast1Mb", "SlowMemOff", "Slow1Mb" },
   { "Slow1Mb", "Chip2Mb", "Fast2Mb", "Slow512Kb", "Slow1.5Mb" },
-  { "Slow1.5Mb", "Chip4Mb", "Fast4Mb", "Slow1Mb", "Save Config" },
+  { "Slow1.5Mb", "Chip4Mb", "Fast4Mb", "Slow1Mb", "Slow1.8Mb" },
+  { "Slow1.8Mb", "Chip8Mb", "Fast8Mb", "Slow1.5Mb", "Save Config" },
 
   { "FastMemOff", "SlowMemOff", "68020", "tabbedArea", "Fast1Mb" },
   { "Fast1Mb", "Slow512Kb", "OCS", "FastMemOff", "Fast2Mb" },
   { "Fast2Mb", "Slow1Mb", "OCS", "Fast1Mb", "Fast4Mb" },
   { "Fast4Mb", "Slow1.5Mb", "ECS", "Fast2Mb", "Fast8Mb" },
-  { "Fast8Mb", "Slow1.5Mb", "AGA", "Fast4Mb", "A500" },
+  { "Fast8Mb", "Slow1.8Mb", "AGA", "Fast4Mb", "A500" },
 
   // Tab Floppy Drive
   { "DF0", "Drives1", "ejectDF0", "tabbedArea", "DF1" },

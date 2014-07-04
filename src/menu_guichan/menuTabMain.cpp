@@ -77,6 +77,7 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_slowmem_512K;
   gcn::UaeRadioButton* radioButton_slowmem_1M;
   gcn::UaeRadioButton* radioButton_slowmem_15M;
+  gcn::UaeRadioButton* radioButton_slowmem_18M;
   gcn::UaeRadioButton* radioButton_fastmem_off;
   gcn::UaeRadioButton* radioButton_fastmem_1M;
   gcn::UaeRadioButton* radioButton_fastmem_2M;
@@ -220,6 +221,8 @@ namespace widgets
       		mainMenu_slowMemory=2;
   	    else if (actionEvent.getSource() == radioButton_slowmem_15M)
       		mainMenu_slowMemory=3;
+  	    else if (actionEvent.getSource() == radioButton_slowmem_18M)
+      		mainMenu_slowMemory=4;
 
   	    if (actionEvent.getSource() == radioButton_fastmem_off)
       		mainMenu_fastMemory=0;
@@ -440,17 +443,22 @@ namespace widgets
   	radioButton_slowmem_15M = new gcn::UaeRadioButton("1.5Mb", "radioslowmemgroup");
   	radioButton_slowmem_15M->setPosition(5,100);
   	radioButton_slowmem_15M->setId("Slow1.5Mb");
+  	radioButton_slowmem_18M = new gcn::UaeRadioButton("1.8Mb", "radioslowmemgroup");
+  	radioButton_slowmem_18M->setPosition(5,130);
+  	radioButton_slowmem_18M->setId("Slow1.8Mb");
   	radioButton_slowmem_off->addActionListener(memoryButtonActionListener);
   	radioButton_slowmem_512K->addActionListener(memoryButtonActionListener);
   	radioButton_slowmem_1M->addActionListener(memoryButtonActionListener);
   	radioButton_slowmem_15M->addActionListener(memoryButtonActionListener);
+  	radioButton_slowmem_18M->addActionListener(memoryButtonActionListener);
   	group_slowmem = new gcn::Window("Slow");
   	group_slowmem->setPosition(105,15);
   	group_slowmem->add(radioButton_slowmem_off);
   	group_slowmem->add(radioButton_slowmem_512K);
   	group_slowmem->add(radioButton_slowmem_1M);
   	group_slowmem->add(radioButton_slowmem_15M);
-  	group_slowmem->setSize(75,145);
+  	group_slowmem->add(radioButton_slowmem_18M);
+  	group_slowmem->setSize(75,175);
     group_slowmem->setBaseColor(baseCol);
   	
   	// Select Fast mem
@@ -565,6 +573,7 @@ namespace widgets
   	delete radioButton_slowmem_512K;
   	delete radioButton_slowmem_1M;
   	delete radioButton_slowmem_15M;
+  	delete radioButton_slowmem_18M;
   	delete group_fastmem;
   	delete radioButton_fastmem_off;
   	delete radioButton_fastmem_1M;
@@ -645,6 +654,8 @@ namespace widgets
       radioButton_slowmem_1M->setSelected(true);
 	  else if (mainMenu_slowMemory==3)
       radioButton_slowmem_15M->setSelected(true);
+	  else if (mainMenu_slowMemory==4)
+      radioButton_slowmem_18M->setSelected(true);
 
   	if (mainMenu_fastMemory==0)
       radioButton_fastmem_off->setSelected(true);

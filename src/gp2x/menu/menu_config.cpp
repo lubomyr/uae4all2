@@ -250,6 +250,9 @@ void UpdateMemorySettings()
 		case 3:
 			prefs_bogomem_size = 0x00180000;	/* 1.5M */
 			break;
+		case 4:
+			prefs_bogomem_size = 0x001C0000;	/* 1.8M */
+			break;
 		default:
 			prefs_bogomem_size = 0;
 	}

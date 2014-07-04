@@ -1066,11 +1066,12 @@ void memory_reset (void)
 
     if (bogomemory != 0) {
        int t = allocated_bogomem >> 16;
-       if (t > 0x1C)
+
+/*       if (t > 0x1C)
           t = 0x1C;
        if (t > 0x10 && ((changed_prefs.chipset_mask & CSMASK_AGA) || (prefs_cpu_model >= 68020)))
           t = 0x10;
-
+*/
 //       memset(bogomemory,0,allocated_bogomem);
        map_banks (&bogomem_bank, 0xC0, t, allocated_bogomem);
     }
