@@ -65,24 +65,22 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_cpuspeed_112Mhz; 
 #endif
   gcn::Window *window_memory;
-  gcn::Window *group_chipmem;
-  gcn::Window *group_slowmem;
-  gcn::Window *group_fastmem;
-  gcn::UaeRadioButton* radioButton_chipmem_512K;
-  gcn::UaeRadioButton* radioButton_chipmem_1M;
-  gcn::UaeRadioButton* radioButton_chipmem_2M;
-  gcn::UaeRadioButton* radioButton_chipmem_4M;
-  gcn::UaeRadioButton* radioButton_chipmem_8M;
-  gcn::UaeRadioButton* radioButton_slowmem_off;
-  gcn::UaeRadioButton* radioButton_slowmem_512K;
-  gcn::UaeRadioButton* radioButton_slowmem_1M;
-  gcn::UaeRadioButton* radioButton_slowmem_15M;
-  gcn::UaeRadioButton* radioButton_slowmem_18M;
-  gcn::UaeRadioButton* radioButton_fastmem_off;
-  gcn::UaeRadioButton* radioButton_fastmem_1M;
-  gcn::UaeRadioButton* radioButton_fastmem_2M;
-  gcn::UaeRadioButton* radioButton_fastmem_4M;
-  gcn::UaeRadioButton* radioButton_fastmem_8M;
+  gcn::Label* label_chipmem;
+  gcn::Label* label_slowmem;
+  gcn::Label* label_fastmem;
+  gcn::Container* backgrd_chipmem;
+  gcn::Container* backgrd_slowmem;
+  gcn::Container* backgrd_fastmem;
+  gcn::Label* label_chipsize;
+  gcn::Label* label_slowsize;
+  gcn::Label* label_fastsize;
+  gcn::Container* backgrd_chipsize;
+  gcn::Container* backgrd_slowsize;
+  gcn::Container* backgrd_fastsize;  
+  gcn::Slider* slider_chipmem;
+  gcn::Slider* slider_slowmem;
+  gcn::Slider* slider_fastmem;  
+
 #ifdef PANDORA
   gcn::Container* backgrd_pandspeed;
   gcn::Label* label_pandspeed;
@@ -190,72 +188,26 @@ namespace widgets
   };
   CPUSpeedButtonActionListener* cpuSpeedButtonActionListener;
 
-
-  class MemoryButtonActionListener : public gcn::ActionListener
+  class MemorySliderActionListener : public gcn::ActionListener
   {
     public:
       void action(const gcn::ActionEvent& actionEvent)
       {
-  	    if (actionEvent.getSource() == radioButton_chipmem_512K)
-      		mainMenu_chipMemory=0;
-  	    else if (actionEvent.getSource() == radioButton_chipmem_1M)
-      		mainMenu_chipMemory=1;
-  	    else if (actionEvent.getSource() == radioButton_chipmem_2M)
-      		mainMenu_chipMemory=2;
-  	    else if (actionEvent.getSource() == radioButton_chipmem_4M)
-	      {
-		      mainMenu_chipMemory=3;
-		      mainMenu_fastMemory=0;
-  	    }
-	      else if (actionEvent.getSource() == radioButton_chipmem_8M)
-  	    {
-	  	    mainMenu_chipMemory=4;
-		      mainMenu_fastMemory=0;
-  	    }
-
-  	    if (actionEvent.getSource() == radioButton_slowmem_off)
-      		mainMenu_slowMemory=0;
-  	    else if (actionEvent.getSource() == radioButton_slowmem_512K)
-      		mainMenu_slowMemory=1;
-  	    else if (actionEvent.getSource() == radioButton_slowmem_1M)
-      		mainMenu_slowMemory=2;
-  	    else if (actionEvent.getSource() == radioButton_slowmem_15M)
-      		mainMenu_slowMemory=3;
-  	    else if (actionEvent.getSource() == radioButton_slowmem_18M)
-      		mainMenu_slowMemory=4;
-
-  	    if (actionEvent.getSource() == radioButton_fastmem_off)
-      		mainMenu_fastMemory=0;
-  	    else if (actionEvent.getSource() == radioButton_fastmem_1M)
-  	    {
-	      	mainMenu_fastMemory=1;
+ 	    if (actionEvent.getSource() == slider_chipmem) {
+    		mainMenu_chipMemory=(int)(slider_chipmem->getValue());
+			}
+ 	    if (actionEvent.getSource() == slider_slowmem)
+      		mainMenu_slowMemory=(int)(slider_slowmem->getValue());
+  	    if (actionEvent.getSource() == slider_fastmem) {
 		      if (mainMenu_chipMemory>2)
 		        mainMenu_chipMemory=2;
-  	    }
-	      else if (actionEvent.getSource() == radioButton_fastmem_2M)
-	      {
-		      mainMenu_fastMemory=2;
-		      if (mainMenu_chipMemory>2)
-		        mainMenu_chipMemory=2;
-  	    }
-	      else if (actionEvent.getSource() == radioButton_fastmem_4M)
-	      {
-		      mainMenu_fastMemory=3;
-      		if (mainMenu_chipMemory>2)
-		        mainMenu_chipMemory=2;
-  	    }
-	      else if (actionEvent.getSource() == radioButton_fastmem_8M)
-	      {
-		      mainMenu_fastMemory=4;
-		      if (mainMenu_chipMemory>2)
-		        mainMenu_chipMemory=2;
-  	    }
+     		mainMenu_fastMemory=(int)(slider_fastmem->getValue());
+		}	
     		UpdateMemorySettings();
     		show_settings_TabMain();
       }
   };
-  MemoryButtonActionListener* memoryButtonActionListener;
-
+  MemorySliderActionListener* memorySliderActionListener;
 
 #if defined(PANDORA) && !defined(WIN32)
   class PandSpeedActionListener : public gcn::ActionListener
@@ -304,11 +256,11 @@ namespace widgets
   	radioButton_chipsetaga = new gcn::UaeRadioButton("AGA", "radiochipsetgroup");
   	radioButton_chipsetaga->setPosition(5,70);
   	radioButton_chipsetaga->setId("AGA");
- 	  chipsetButtonActionListener = new ChipsetButtonActionListener();
+ 	chipsetButtonActionListener = new ChipsetButtonActionListener();
   	radioButton_chipsetocs->addActionListener(chipsetButtonActionListener);
   	radioButton_chipsetecs->addActionListener(chipsetButtonActionListener);
   	radioButton_chipsetaga->addActionListener(chipsetButtonActionListener);
- 	  group_chipset = new gcn::Window("Chipset");
+ 	group_chipset = new gcn::Window("Chipset");
    	group_chipset->setPosition(10,120);
   	group_chipset->add(radioButton_chipsetocs);
   	group_chipset->add(radioButton_chipsetecs);
@@ -398,108 +350,92 @@ namespace widgets
 #endif
 	group_cpuspeed->setBaseColor(baseCol);
 
-    // Select Chip memory
-  	radioButton_chipmem_512K = new gcn::UaeRadioButton("512Kb", "radiochipmemgroup");
-  	radioButton_chipmem_512K->setPosition(5,10);
-  	radioButton_chipmem_512K->setId("512Kb");
-  	radioButton_chipmem_1M = new gcn::UaeRadioButton("1Mb", "radiochipmemgroup");
-  	radioButton_chipmem_1M->setPosition(5,40);
-  	radioButton_chipmem_1M->setId("Chip1Mb");
-  	radioButton_chipmem_2M = new gcn::UaeRadioButton("2Mb", "radiochipmemgroup");
-  	radioButton_chipmem_2M->setPosition(5,70);
-  	radioButton_chipmem_2M->setId("Chip2Mb");
-  	radioButton_chipmem_4M = new gcn::UaeRadioButton("4Mb", "radiochipmemgroup");
-  	radioButton_chipmem_4M->setPosition(5,100);
-  	radioButton_chipmem_4M->setId("Chip4Mb");
-  	radioButton_chipmem_8M = new gcn::UaeRadioButton("8Mb", "radiochipmemgroup");
-  	radioButton_chipmem_8M->setPosition(5,130);
-  	radioButton_chipmem_8M->setId("Chip8Mb");
-    memoryButtonActionListener = new MemoryButtonActionListener();
-  	radioButton_chipmem_512K->addActionListener(memoryButtonActionListener);
-  	radioButton_chipmem_1M->addActionListener(memoryButtonActionListener);
-  	radioButton_chipmem_2M->addActionListener(memoryButtonActionListener);
-  	radioButton_chipmem_4M->addActionListener(memoryButtonActionListener);
-  	radioButton_chipmem_8M->addActionListener(memoryButtonActionListener);
-  	group_chipmem = new gcn::Window("Chip");
-  	group_chipmem->setPosition(15,15);
-  	group_chipmem->add(radioButton_chipmem_512K);
-  	group_chipmem->add(radioButton_chipmem_1M);
-  	group_chipmem->add(radioButton_chipmem_2M);
-  	group_chipmem->add(radioButton_chipmem_4M);
-  	group_chipmem->add(radioButton_chipmem_8M);
-  	group_chipmem->setSize(75,175);
-    group_chipmem->setBaseColor(baseCol);
-  	
-  	// Select Slow mem
-  	radioButton_slowmem_off = new gcn::UaeRadioButton("off", "radioslowmemgroup");
-  	radioButton_slowmem_off->setPosition(5,10);
-  	radioButton_slowmem_off->setId("SlowMemOff");
-  	radioButton_slowmem_512K = new gcn::UaeRadioButton("512Kb", "radioslowmemgroup");
-  	radioButton_slowmem_512K->setPosition(5,40);
-  	radioButton_slowmem_512K->setId("Slow512Kb");
-  	radioButton_slowmem_1M = new gcn::UaeRadioButton("1Mb", "radioslowmemgroup");
-  	radioButton_slowmem_1M->setPosition(5,70);
-  	radioButton_slowmem_1M->setId("Slow1Mb");
-  	radioButton_slowmem_15M = new gcn::UaeRadioButton("1.5Mb", "radioslowmemgroup");
-  	radioButton_slowmem_15M->setPosition(5,100);
-  	radioButton_slowmem_15M->setId("Slow1.5Mb");
-  	radioButton_slowmem_18M = new gcn::UaeRadioButton("1.8Mb", "radioslowmemgroup");
-  	radioButton_slowmem_18M->setPosition(5,130);
-  	radioButton_slowmem_18M->setId("Slow1.8Mb");
-  	radioButton_slowmem_off->addActionListener(memoryButtonActionListener);
-  	radioButton_slowmem_512K->addActionListener(memoryButtonActionListener);
-  	radioButton_slowmem_1M->addActionListener(memoryButtonActionListener);
-  	radioButton_slowmem_15M->addActionListener(memoryButtonActionListener);
-  	radioButton_slowmem_18M->addActionListener(memoryButtonActionListener);
-  	group_slowmem = new gcn::Window("Slow");
-  	group_slowmem->setPosition(105,15);
-  	group_slowmem->add(radioButton_slowmem_off);
-  	group_slowmem->add(radioButton_slowmem_512K);
-  	group_slowmem->add(radioButton_slowmem_1M);
-  	group_slowmem->add(radioButton_slowmem_15M);
-  	group_slowmem->add(radioButton_slowmem_18M);
-  	group_slowmem->setSize(75,175);
-    group_slowmem->setBaseColor(baseCol);
-  	
-  	// Select Fast mem
-  	radioButton_fastmem_off = new gcn::UaeRadioButton("off", "radiofastmemgroup");
-  	radioButton_fastmem_off->setPosition(5,10);
-  	radioButton_fastmem_off->setId("FastMemOff");
-  	radioButton_fastmem_1M = new gcn::UaeRadioButton("1Mb", "radiofastmemgroup");
-  	radioButton_fastmem_1M->setPosition(5,40);
-  	radioButton_fastmem_1M->setId("Fast1Mb");
-  	radioButton_fastmem_2M = new gcn::UaeRadioButton("2Mb", "radiofastmemgroup");
-  	radioButton_fastmem_2M->setPosition(5,70);
-  	radioButton_fastmem_2M->setId("Fast2Mb");
-  	radioButton_fastmem_4M = new gcn::UaeRadioButton("4Mb", "radiofastmemgroup");
-  	radioButton_fastmem_4M->setPosition(5,100);
-  	radioButton_fastmem_4M->setId("Fast4Mb");
-  	radioButton_fastmem_8M = new gcn::UaeRadioButton("8Mb", "radiofastmemgroup");
-  	radioButton_fastmem_8M->setPosition(5,130);
-  	radioButton_fastmem_8M->setId("Fast8Mb");
-  	radioButton_fastmem_off->addActionListener(memoryButtonActionListener);
-  	radioButton_fastmem_1M->addActionListener(memoryButtonActionListener);
-  	radioButton_fastmem_2M->addActionListener(memoryButtonActionListener);
-  	radioButton_fastmem_4M->addActionListener(memoryButtonActionListener);
-  	radioButton_fastmem_8M->addActionListener(memoryButtonActionListener);
-  	group_fastmem = new gcn::Window("Fast");
-  	group_fastmem->setPosition(195,15);
-  	group_fastmem->add(radioButton_fastmem_off);
-  	group_fastmem->add(radioButton_fastmem_1M);
-  	group_fastmem->add(radioButton_fastmem_2M);
-  	group_fastmem->add(radioButton_fastmem_4M);
-  	group_fastmem->add(radioButton_fastmem_8M);
-  	group_fastmem->setSize(75,175);
-    group_fastmem->setBaseColor(baseCol);
-
+    // Select Memory
+  	label_chipmem = new gcn::Label("Chip");
+  	label_chipmem->setPosition(4, 2);
+  	label_slowmem = new gcn::Label("Slow");
+  	label_slowmem->setPosition(4, 2);
+  	label_fastmem = new gcn::Label("Fast");
+  	label_fastmem->setPosition(4, 2);
+  	backgrd_chipmem = new gcn::Container();
+  	backgrd_chipmem->setOpaque(true);
+  	backgrd_chipmem->setBaseColor(baseColLabel);
+  	backgrd_chipmem->setPosition(15, 20);
+  	backgrd_chipmem->setSize(50, 21);
+    backgrd_chipmem->add(label_chipmem);
+  	backgrd_slowmem = new gcn::Container();
+  	backgrd_slowmem->setOpaque(true);
+  	backgrd_slowmem->setBaseColor(baseColLabel);
+  	backgrd_slowmem->setPosition(15, 60);
+  	backgrd_slowmem->setSize(50, 21);
+    backgrd_slowmem->add(label_slowmem);
+  	backgrd_fastmem = new gcn::Container();
+  	backgrd_fastmem->setOpaque(true);
+  	backgrd_fastmem->setBaseColor(baseColLabel);
+  	backgrd_fastmem->setPosition(15, 100);
+  	backgrd_fastmem->setSize(50, 21);
+    backgrd_fastmem->add(label_fastmem);
+    slider_chipmem = new gcn::Slider(0, 4);
+	slider_chipmem->setPosition(85,20);
+    slider_chipmem->setSize(110, 21);
+	slider_chipmem->setMarkerLength(20);
+	slider_chipmem->setStepLength(1);
+	slider_chipmem->setId("ChipMem");
+	slider_slowmem = new gcn::Slider(0, 4);
+	slider_slowmem->setPosition(85,60);
+	slider_slowmem->setSize(110, 21);
+	slider_slowmem->setMarkerLength(20);
+	slider_slowmem->setStepLength(1);
+	slider_slowmem->setId("SlowMem");
+	slider_fastmem = new gcn::Slider(0, 4);
+	slider_fastmem->setPosition(85,100);
+	slider_fastmem->setSize(110, 21);
+	slider_fastmem->setMarkerLength(20);
+	slider_fastmem->setStepLength(1);
+	slider_fastmem->setId("FastMem");
+    memorySliderActionListener = new MemorySliderActionListener();
+	slider_chipmem->addActionListener(memorySliderActionListener);
+	slider_slowmem->addActionListener(memorySliderActionListener);
+	slider_fastmem->addActionListener(memorySliderActionListener);
+  	label_chipsize = new gcn::Label("None  ");
+  	label_chipsize->setPosition(4, 2);
+  	label_slowsize = new gcn::Label("None  ");
+  	label_slowsize->setPosition(4, 2);
+  	label_fastsize = new gcn::Label("None  ");
+  	label_fastsize->setPosition(4, 2);
+   	backgrd_chipsize = new gcn::Container();
+  	backgrd_chipsize->setOpaque(true);
+  	backgrd_chipsize->setBaseColor(baseColLabel);
+  	backgrd_chipsize->setPosition(215, 20);
+  	backgrd_chipsize->setSize(50, 21);
+    backgrd_chipsize->add(label_chipsize);
+  	backgrd_slowsize = new gcn::Container();
+  	backgrd_slowsize->setOpaque(true);
+  	backgrd_slowsize->setBaseColor(baseColLabel);
+  	backgrd_slowsize->setPosition(215, 60);
+  	backgrd_slowsize->setSize(50, 21);
+    backgrd_slowsize->add(label_slowsize);
+  	backgrd_fastsize = new gcn::Container();
+  	backgrd_fastsize->setOpaque(true);
+  	backgrd_fastsize->setBaseColor(baseColLabel);
+  	backgrd_fastsize->setPosition(215, 100);
+  	backgrd_fastsize->setSize(50, 21);
+    backgrd_fastsize->add(label_fastsize);
+		
   	window_memory = new gcn::Window("Memory");
   	window_memory->add(icon_winlogo);
   	window_memory->setPosition(300,20);
-  	window_memory->add(group_chipmem);
-  	window_memory->add(group_slowmem);	
-  	window_memory->add(group_fastmem);
+  	window_memory->add(backgrd_chipmem);
+  	window_memory->add(backgrd_slowmem);	
+  	window_memory->add(backgrd_fastmem);
+  	window_memory->add(slider_chipmem);
+  	window_memory->add(slider_slowmem);	
+  	window_memory->add(slider_fastmem);
+  	window_memory->add(backgrd_chipsize);
+  	window_memory->add(backgrd_slowsize);	
+  	window_memory->add(backgrd_fastsize);
   	window_memory->setMovable(false);
-  	window_memory->setSize(287,220);
+  	window_memory->setSize(287,160);
     window_memory->setBaseColor(baseCol);
 
 #if defined(PANDORA) && !defined(WIN32)
@@ -562,24 +498,22 @@ namespace widgets
     delete radioButton_cpuspeed_112Mhz; 
 #endif
   	delete window_memory;
-  	delete group_chipmem;
-  	delete radioButton_chipmem_512K;
-  	delete radioButton_chipmem_1M;
-  	delete radioButton_chipmem_2M;
-  	delete radioButton_chipmem_4M;
-  	delete radioButton_chipmem_8M;
-  	delete group_slowmem;
-  	delete radioButton_slowmem_off;
-  	delete radioButton_slowmem_512K;
-  	delete radioButton_slowmem_1M;
-  	delete radioButton_slowmem_15M;
-  	delete radioButton_slowmem_18M;
-  	delete group_fastmem;
-  	delete radioButton_fastmem_off;
-  	delete radioButton_fastmem_1M;
-  	delete radioButton_fastmem_2M;
-  	delete radioButton_fastmem_4M;
-  	delete radioButton_fastmem_8M;
+  	delete label_chipmem;
+  	delete label_slowmem;
+  	delete label_fastmem;
+  	delete backgrd_chipmem;
+  	delete backgrd_slowmem;
+  	delete backgrd_fastmem;
+  	delete label_chipsize;
+  	delete label_slowsize;
+  	delete label_fastsize;
+   	delete backgrd_chipsize;
+  	delete backgrd_slowsize;
+  	delete backgrd_fastsize;  
+  	delete slider_chipmem;
+  	delete slider_slowmem;
+  	delete slider_fastmem;  
+
 #if defined(PANDORA) && !defined(WIN32)
     delete backgrd_pandspeed;
     delete label_pandspeed;
@@ -590,7 +524,7 @@ namespace widgets
     delete chipsetButtonActionListener;
     delete kickstartButtonActionListener;
     delete cpuSpeedButtonActionListener;
-    delete memoryButtonActionListener;
+	delete memorySliderActionListener;
 #if defined(PANDORA) && !defined(WIN32)
     delete pandSpeedActionListener;
 #endif
@@ -635,39 +569,16 @@ namespace widgets
 	    radioButton_cpuspeed_112Mhz->setSelected(true);
 #endif
 
-	  if (mainMenu_chipMemory==0)
-      radioButton_chipmem_512K->setSelected(true);
-	  else if (mainMenu_chipMemory==1)
-      radioButton_chipmem_1M->setSelected(true);
-	  else if (mainMenu_chipMemory==2)
-      radioButton_chipmem_2M->setSelected(true);
-	  else if (mainMenu_chipMemory==3)
-      radioButton_chipmem_4M->setSelected(true);
-	  else if (mainMenu_chipMemory==4)
-      radioButton_chipmem_8M->setSelected(true);
-
-  	if (mainMenu_slowMemory==0)
-      radioButton_slowmem_off->setSelected(true);
-	  else if (mainMenu_slowMemory==1)
-      radioButton_slowmem_512K->setSelected(true);
-	  else if (mainMenu_slowMemory==2)
-      radioButton_slowmem_1M->setSelected(true);
-	  else if (mainMenu_slowMemory==3)
-      radioButton_slowmem_15M->setSelected(true);
-	  else if (mainMenu_slowMemory==4)
-      radioButton_slowmem_18M->setSelected(true);
-
-  	if (mainMenu_fastMemory==0)
-      radioButton_fastmem_off->setSelected(true);
-	  else if (mainMenu_fastMemory==1)
-      radioButton_fastmem_1M->setSelected(true);
-	  else if (mainMenu_fastMemory==2)
-      radioButton_fastmem_2M->setSelected(true);
-	  else if (mainMenu_fastMemory==3)
-      radioButton_fastmem_4M->setSelected(true);
-	  else if (mainMenu_fastMemory==4)
-      radioButton_fastmem_8M->setSelected(true);
-
+	const char *ChipMem_list[] = { "512Kb", "1Mb", "2Mb", "4Mb", "8Mb" };
+	const char *SlowMem_list[] = { "None", "512Kb", "1Mb", "1.5Mb", "1.8Mb" };
+	const char *FastMem_list[] = { "None", "1Mb", "2Mb", "4mb", "8Mb" };
+	slider_chipmem->setValue(mainMenu_chipMemory);
+	slider_slowmem->setValue(mainMenu_slowMemory);
+	slider_fastmem->setValue(mainMenu_fastMemory);
+	label_chipsize->setCaption(ChipMem_list[mainMenu_chipMemory]);
+	label_slowsize->setCaption(SlowMem_list[mainMenu_slowMemory]);
+	label_fastsize->setCaption(FastMem_list[mainMenu_fastMemory]);
+	
 #if defined(PANDORA) && !defined(WIN32)
     if(dropDown_pandspeed->getSelected() != (mainMenu_cpuSpeed - 500) / 20)
       dropDown_pandspeed->setSelected((mainMenu_cpuSpeed - 500) / 20);

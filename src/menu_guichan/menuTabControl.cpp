@@ -39,20 +39,16 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_control_config_2;
   gcn::UaeRadioButton* radioButton_control_config_3;
   gcn::UaeRadioButton* radioButton_control_config_4;
-#ifdef ANDROIDSDL
+
   gcn::CheckBox* checkBox_statusline;
-#endif
+
   gcn::Label* label1_control_config;
   gcn::Label* label2_control_config;
   gcn::Window *group_joystick;
   gcn::UaeRadioButton* radioButton_joy_port0;
   gcn::UaeRadioButton* radioButton_joy_port1;
   gcn::UaeRadioButton* radioButton_joy_both;
-#ifdef PANDORA
-  gcn::Window *group_statusln;
-  gcn::UaeRadioButton* radioButton_statusln_on;
-  gcn::UaeRadioButton* radioButton_statusln_off;
-#endif
+
   gcn::Window *group_autofirerate;
   gcn::UaeRadioButton* radioButton_autofirerate_light;
   gcn::UaeRadioButton* radioButton_autofirerate_medium;
@@ -153,18 +149,11 @@ namespace widgets
     public:
       void action(const gcn::ActionEvent& actionEvent)
       {
-#ifdef ANDROIDSDL
 	    if (actionEvent.getSource() == checkBox_statusline)
 	       if (checkBox_statusline->isSelected())
 		  mainMenu_showStatus=true;
 	       else
 		  mainMenu_showStatus=false;	      
-#else
-  	    if (actionEvent.getSource() == radioButton_statusln_on)
-	      	mainMenu_showStatus=true;
-	      else if (actionEvent.getSource() == radioButton_statusln_off)
-		      mainMenu_showStatus=false;
-#endif
       }
   };
   StatuslineActionListener* statuslineActionListener;
@@ -272,7 +261,6 @@ namespace widgets
   	group_control_config->setSize(145,145);
     group_control_config->setBaseColor(baseCol);
     
-#ifdef ANDROIDSDL
     // Select Statusline
 	checkBox_statusline = new gcn::CheckBox("Status line");
 	checkBox_statusline->setPosition(485,155);
@@ -280,7 +268,6 @@ namespace widgets
 	checkBox_statusline->setBaseColor(baseColLabel);
 	statuslineActionListener = new StatuslineActionListener();
 	checkBox_statusline->addActionListener(statuslineActionListener);
-#endif
 
     // Select Joystick port
   	radioButton_joy_port0 = new gcn::UaeRadioButton("Port0", "radiojoystickgroup");
@@ -305,26 +292,6 @@ namespace widgets
   	group_joystick->setSize(80,115);
     group_joystick->setBaseColor(baseCol);
     
-#ifdef PANDORA
-    // Select Statusline
-  	radioButton_statusln_on = new gcn::UaeRadioButton("On", "radiostatuslngroup");
-  	radioButton_statusln_on->setPosition(5,10);
-  	radioButton_statusln_on->setId("StatusOn");
-    statuslineActionListener = new StatuslineActionListener();
-  	radioButton_statusln_on->addActionListener(statuslineActionListener);
-  	radioButton_statusln_off = new gcn::UaeRadioButton("Off", "radiostatuslngroup");
-  	radioButton_statusln_off->setPosition(5,40);
-  	radioButton_statusln_off->setId("StatusOff");
-  	radioButton_statusln_off->addActionListener(statuslineActionListener);
-  	group_statusln = new gcn::Window("Status line");
-  	group_statusln->setPosition(170,150);
-  	group_statusln->add(radioButton_statusln_on);
-  	group_statusln->add(radioButton_statusln_off);
-  	group_statusln->setMovable(false);
-  	group_statusln->setSize(80,85);
-    group_statusln->setBaseColor(baseCol);
-#endif
-
     // Select Autofire
   	radioButton_autofirerate_light = new gcn::UaeRadioButton("Light", "radioautofirerategroup");
   	radioButton_autofirerate_light->setPosition(5,10);
@@ -425,11 +392,7 @@ namespace widgets
   	tab_control->add(icon_winlogo);
   	tab_control->add(group_control_config);
   	tab_control->add(group_joystick);
-#ifdef ANDROIDSDL
   	tab_control->add(checkBox_statusline);
-#else
-  	tab_control->add(group_statusln);
-#endif
   	tab_control->add(group_autofirerate);
   	tab_control->add(group_mouseMultiplier);
   	tab_control->add(group_tapDelay);
@@ -448,20 +411,15 @@ namespace widgets
   	delete radioButton_control_config_2;
   	delete radioButton_control_config_3;
   	delete radioButton_control_config_4;
-#ifdef ANDROIDSDL
+
 	delete checkBox_statusline;
-#endif
+
   	delete label1_control_config;
   	delete label2_control_config;
   	delete group_joystick;
   	delete radioButton_joy_port0;
   	delete radioButton_joy_port1;
   	delete radioButton_joy_both;
-#ifdef PANDORA
-  	delete group_statusln;
-  	delete radioButton_statusln_on;
-  	delete radioButton_statusln_off;
-#endif
   	delete group_autofirerate;
   	delete radioButton_autofirerate_light;
   	delete radioButton_autofirerate_medium;
@@ -524,17 +482,11 @@ namespace widgets
 	  else if (mainMenu_joyPort==0)
 	    radioButton_joy_both->setSelected(true);
 
-#ifdef ANDROIDSDL
+
 	if (mainMenu_showStatus)
 	    checkBox_statusline->setSelected(true);
 	else
 	    checkBox_statusline->setSelected(false);
-#else
-  	if (mainMenu_showStatus)
-	    radioButton_statusln_on->setSelected(true);
-	  else if (!mainMenu_showStatus)
-	    radioButton_statusln_off->setSelected(true);
-#endif
 
   	if (mainMenu_autofireRate==12)
 	    radioButton_autofirerate_light->setSelected(true);

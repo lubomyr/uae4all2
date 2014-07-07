@@ -38,8 +38,7 @@ MORE_CFLAGS +=   -Isrc -Isrc/gp2x -Isrc/vkbd -Isrc/menu -Isrc/include -Isrc/gp2x
 
 MORE_CFLAGS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
 
-MORE_CFLAGS += -msoft-float -ffast-math
-#MORE_CFLAGS += -ffast-math
+MORE_CFLAGS += -ffast-math
 ifndef DEBUG
 MORE_CFLAGS += -O2
 MORE_CFLAGS += -fstrict-aliasing -fexpensive-optimizations

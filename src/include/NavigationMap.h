@@ -18,65 +18,45 @@ NavigationMap navMap[] =
   { "A1200", "Quit", "Reset", "A500", "tabbedArea" },
 
   // Tab Main
-  { "68000", "FastMemOff", "1.2", "tabbedArea", "68020" },
-  { "68020", "FastMemOff", "1.3", "68000", "OCS" },
+  { "68000", "ChipMem", "1.2", "tabbedArea", "68020" },
+  { "68020", "ChipMem", "1.3", "68000", "OCS" },
 
-  { "OCS", "Fast2Mb", "3.1", "68020", "ECS" },
-#ifdef PANDORA
-  { "ECS", "Fast4Mb", "PandSpeed", "OCS", "AGA" },
-  { "AGA", "Fast8Mb", "PandSpeed", "ECS", "Reset" },
+  { "OCS", "FastMem", "3.1", "68020", "ECS" },
+#if defined(PANDORA) && !defined(WIN32)
+  { "ECS", "FastMem", "PandSpeed", "OCS", "AGA" },
+  { "AGA", "FastMem", "PandSpeed", "ECS", "Reset" },
 #else
-  { "ECS", "Fast4Mb", "3.1", "OCS", "AGA" },
-  { "AGA", "Fast8Mb", "3.1", "ECS", "Reset" },
+  { "ECS", "FastMem", "AROS", "OCS", "AGA" },
+  { "AGA", "FastMem", "AROS", "ECS", "Reset" },
 #endif
 
   { "1.2", "68000", "7MHz", "tabbedArea", "1.3" },
   { "1.3", "68020", "14MHz", "1.2", "2.0" },
   { "2.0", "OCS", "28MHz", "1.3", "3.1" },
   { "3.1", "OCS", "28MHz", "2.0", "AROS" },
-#ifdef PANDORA
+#if defined(PANDORA) && !defined(WIN32)
   { "AROS", "ECS", "28MHz", "3.1", "PandSpeed" },
 #endif
-#ifdef ANDROIDSDL
-  { "AROS", "ECS", "56MHz", "3.1", "Reset" },
+#if defined(WIN32) || defined(ANDROIDSDL)
+  { "AROS", "ECS", "112MHz", "3.1", "Reset" },
 #endif
 
-  { "7MHz", "1.2", "512Kb", "tabbedArea", "14MHz" },
-  { "14MHz", "1.3", "512Kb", "7MHz", "28MHz" },
-#ifdef PANDORA
-  { "28MHz", "2.0", "Chip1Mb", "14MHz", "PandSpeed" },
+  { "7MHz", "1.2", "ChipMem", "tabbedArea", "14MHz" },
+  { "14MHz", "1.3", "ChipMem", "7MHz", "28MHz" },
+#if defined(PANDORA) && !defined(WIN32)
+  { "28MHz", "2.0", "SlowMem", "14MHz", "PandSpeed" },
 #endif
-#ifdef ANDROIDSDL
-  { "28MHz", "2.0", "Chip1Mb", "14MHz", "56MHz" },
-  { "56MHz", "3.1", "Chip2Mb", "28MHz", "112MHz" },
-  { "112MHz", "3.1", "Chip4Mb", "56MHz", "Reset" },
+#if defined(WIN32) || defined(ANDROIDSDL)
+  { "28MHz", "2.0", "SlowMem", "14MHz", "56MHz" },
+  { "56MHz", "3.1", "FastMem", "28MHz", "112MHz" },
+  { "112MHz", "AROS", "FastMem", "56MHz", "Reset" },
 #endif
 
   { "PandSpeed", "ECS", "Chip8Mb", "---", "---" },
 
-  { "512Kb", "14MHz", "SlowMemOff", "tabbedArea", "Chip1Mb" },
-  { "Chip1Mb", "28MHz", "Slow512Kb", "512Kb", "Chip2Mb" },
-#ifdef ANDROIDSDL
-  { "Chip2Mb", "56MHz", "Slow1Mb", "Chip1Mb", "Chip4Mb" },
-  { "Chip4Mb", "112MHz", "Slow1.5Mb", "Chip2Mb", "Chip8Mb" },
-  { "Chip8Mb", "112MHz", "Slow1.8Mb", "Chip4Mb", "ConfManager" },
-#else
-  { "Chip2Mb", "28MHz", "Slow1Mb", "Chip1Mb", "Chip4Mb" },
-  { "Chip4Mb", "PandSpeed", "Slow1.5Mb", "Chip2Mb", "Chip8Mb" },
-  { "Chip8Mb", "PandSpeed", "Slow1.8Mb", "Chip4Mb", "ConfManager" },
-#endif
-
-  { "SlowMemOff", "512Kb", "FastMemOff", "tabbedArea", "Slow512Kb" },
-  { "Slow512Kb", "Chip1Mb", "Fast1Mb", "SlowMemOff", "Slow1Mb" },
-  { "Slow1Mb", "Chip2Mb", "Fast2Mb", "Slow512Kb", "Slow1.5Mb" },
-  { "Slow1.5Mb", "Chip4Mb", "Fast4Mb", "Slow1Mb", "Slow1.8Mb" },
-  { "Slow1.8Mb", "Chip8Mb", "Fast8Mb", "Slow1.5Mb", "Save Config" },
-
-  { "FastMemOff", "SlowMemOff", "68020", "tabbedArea", "Fast1Mb" },
-  { "Fast1Mb", "Slow512Kb", "OCS", "FastMemOff", "Fast2Mb" },
-  { "Fast2Mb", "Slow1Mb", "OCS", "Fast1Mb", "Fast4Mb" },
-  { "Fast4Mb", "Slow1.5Mb", "ECS", "Fast2Mb", "Fast8Mb" },
-  { "Fast8Mb", "Slow1.8Mb", "AGA", "Fast4Mb", "A500" },
+  { "ChipMem", "---", "---", "tabbedArea", "SlowMem" },
+  { "SlowMem", "---", "---", "ChipMem", "FastMem" },
+  { "FastMem", "---", "---", "SlowMem", "Save Config" },
 
   // Tab Floppy Drive
   { "DF0", "Drives1", "ejectDF0", "tabbedArea", "DF1" },
@@ -166,13 +146,7 @@ NavigationMap navMap[] =
   { "Port0", "ControlCfg2", "Light", "tabbedArea", "Port1" },
   { "Port1", "ControlCfg4", "Medium", "Port0", "Both" },
 
-#ifdef ANDROIDSDL
   { "Both", "ControlCfg4", "Heavy", "Port1", "Reset" },
-#else
-  { "Both", "ControlCfg4", "Heavy", "Port1", "StatusOn" },
-  { "StatusOn", "ControlCfg4", "Heavy", "Both", "StatusOff" },
-  { "StatusOff", "ControlCfg4", "Heavy", "StatusOn", "Reset" },
-#endif
 
   { "Light", "Port0", "Mouse.25", "tabbedArea", "Medium" },
   { "Medium", "Port1", "Mouse.5", "Light", "Heavy" },
@@ -181,27 +155,16 @@ NavigationMap navMap[] =
   { "Mouse.25", "Light", "TapNormal", "tabbedArea", "Mouse.5" },
   { "Mouse.5", "Medium", "TapShort", "Mouse.25", "Mouse1x" },
   { "Mouse1x", "Heavy", "TapNo", "Mouse.5", "Mouse2x" },
-#ifdef ANDROIDSDL
   { "Mouse2x", "Heavy", "StatusLine", "Mouse1x", "Mouse4x" },
   { "Mouse4x", "Heavy", "StatusLine", "Mouse2x", "StylusOffset" },
-#else
-  { "Mouse2x", "Heavy", "TapNo", "Mouse1x", "Mouse4x" },
-  { "Mouse4x", "Heavy", "TapNo", "Mouse2x", "StylusOffset" },
-#endif
 
   { "TapNormal", "Mouse.25", "ControlCfg1", "tabbedArea", "TapShort" },
   { "TapShort", "Mouse.5", "ControlCfg3", "TapNormal", "TapNo" },
-#ifdef ANDROIDSDL
   { "TapNo", "Mouse1x", "ControlCfg3", "TapShort", "StatusLine" },
   
   { "StatusLine", "Mouse4x", "ControlCfg3", "TapNo", "StylusOffset" },
 
   { "StylusOffset", "Mouse4x", "Mouse4x", "---", "---" },
-#else
-  { "TapNo", "Mouse1x", "ControlCfg3", "TapShort", "StylusOffset" },
-
-  { "StylusOffset", "StatusOff", "StatusOff", "---", "---" },
-#endif
 
   // Tab Custom Control
   { "CustomCtrlOff", "CtrlUp", "CustomCtrlOn", "tabbedArea", "DPadCustom" },
