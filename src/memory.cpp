@@ -964,10 +964,10 @@ static void allocate_memory (void)
 			mapped_free (bogomemory);
 		bogomemory = 0;
 		
-		if(prefs_bogomem_size > 0x1c0000)
+/*	if(prefs_bogomem_size > 0x1c0000)
       prefs_bogomem_size = 0x1c0000;
     if (prefs_bogomem_size > 0x180000 && ((changed_prefs.chipset_mask & CSMASK_AGA) || (prefs_cpu_model >= 68020)))
-      prefs_bogomem_size = 0x180000;
+      prefs_bogomem_size = 0x180000;*/
       
 		allocated_bogomem = prefs_bogomem_size;
 		bogomem_mask = allocated_bogomem - 1;
