@@ -79,7 +79,8 @@ namespace widgets
   gcn::Container* backgrd_fastsize;  
   gcn::Slider* slider_chipmem;
   gcn::Slider* slider_slowmem;
-  gcn::Slider* slider_fastmem;  
+  gcn::Slider* slider_fastmem;
+  gcn::CheckBox* checkBox_immediate_blits;
 
 #ifdef PANDORA
   gcn::Container* backgrd_pandspeed;
@@ -209,6 +210,20 @@ namespace widgets
   };
   MemorySliderActionListener* memorySliderActionListener;
 
+  class ImmediateblitsActionListener : public gcn::ActionListener
+  {
+    public:
+      void action(const gcn::ActionEvent& actionEvent)
+      {
+	    if (actionEvent.getSource() == checkBox_immediate_blits)
+	       if (checkBox_immediate_blits->isSelected())
+		  mainMenu_immediate_blits=1;
+	       else
+		  mainMenu_immediate_blits=0;	      
+      }
+  };
+  ImmediateblitsActionListener* immediateblitsActionListener;
+  
 #if defined(PANDORA) && !defined(WIN32)
   class PandSpeedActionListener : public gcn::ActionListener
   {
@@ -378,19 +393,19 @@ namespace widgets
     slider_chipmem = new gcn::Slider(0, 4);
 	slider_chipmem->setPosition(85,20);
     slider_chipmem->setSize(110, 21);
-	slider_chipmem->setMarkerLength(20);
+	slider_chipmem->setMarkerLength(24);
 	slider_chipmem->setStepLength(1);
 	slider_chipmem->setId("ChipMem");
 	slider_slowmem = new gcn::Slider(0, 4);
 	slider_slowmem->setPosition(85,60);
 	slider_slowmem->setSize(110, 21);
-	slider_slowmem->setMarkerLength(20);
+	slider_slowmem->setMarkerLength(24);
 	slider_slowmem->setStepLength(1);
 	slider_slowmem->setId("SlowMem");
 	slider_fastmem = new gcn::Slider(0, 4);
 	slider_fastmem->setPosition(85,100);
 	slider_fastmem->setSize(110, 21);
-	slider_fastmem->setMarkerLength(20);
+	slider_fastmem->setMarkerLength(24);
 	slider_fastmem->setStepLength(1);
 	slider_fastmem->setId("FastMem");
     memorySliderActionListener = new MemorySliderActionListener();
@@ -437,6 +452,14 @@ namespace widgets
   	window_memory->setMovable(false);
   	window_memory->setSize(287,160);
     window_memory->setBaseColor(baseCol);
+	
+    // Select immediate blits
+	checkBox_immediate_blits = new gcn::CheckBox("Immediate blits");
+	checkBox_immediate_blits->setPosition(105, 210);
+	checkBox_immediate_blits->setId("ImmediateBlits");
+	checkBox_immediate_blits->setBaseColor(baseColLabel);
+	immediateblitsActionListener = new ImmediateblitsActionListener();
+	checkBox_immediate_blits->addActionListener(immediateblitsActionListener);
 
 #if defined(PANDORA) && !defined(WIN32)
     // Pandora CPU speed
@@ -445,11 +468,11 @@ namespace widgets
   	backgrd_pandspeed = new gcn::Container();
   	backgrd_pandspeed->setOpaque(true);
   	backgrd_pandspeed->setBaseColor(baseColLabel);
-  	backgrd_pandspeed->setPosition(105, 210);
+  	backgrd_pandspeed->setPosition(105, 240);
   	backgrd_pandspeed->setSize(100, 21);
     backgrd_pandspeed->add(label_pandspeed);
   	dropDown_pandspeed = new gcn::UaeDropDown(&pandSpeedList);
-  	dropDown_pandspeed->setPosition(215,210);
+  	dropDown_pandspeed->setPosition(215,240);
   	dropDown_pandspeed->setWidth(70);
     dropDown_pandspeed->setBaseColor(baseCol);
     dropDown_pandspeed->setId("PandSpeed");
@@ -464,6 +487,7 @@ namespace widgets
 	  tab_main->add(group_kickstart);
 	  tab_main->add(group_cpuspeed);
 	  tab_main->add(window_memory);
+	  tab_main->add(checkBox_immediate_blits);
 #if defined(PANDORA) && !defined(WIN32)
     tab_main->add(backgrd_pandspeed);
   	tab_main->add(dropDown_pandspeed);
@@ -512,7 +536,8 @@ namespace widgets
   	delete backgrd_fastsize;  
   	delete slider_chipmem;
   	delete slider_slowmem;
-  	delete slider_fastmem;  
+  	delete slider_fastmem;
+	delete checkBox_immediate_blits;
 
 #if defined(PANDORA) && !defined(WIN32)
     delete backgrd_pandspeed;
@@ -525,6 +550,7 @@ namespace widgets
     delete kickstartButtonActionListener;
     delete cpuSpeedButtonActionListener;
 	delete memorySliderActionListener;
+	delete immediateblitsActionListener;
 #if defined(PANDORA) && !defined(WIN32)
     delete pandSpeedActionListener;
 #endif
@@ -578,6 +604,11 @@ namespace widgets
 	label_chipsize->setCaption(ChipMem_list[mainMenu_chipMemory]);
 	label_slowsize->setCaption(SlowMem_list[mainMenu_slowMemory]);
 	label_fastsize->setCaption(FastMem_list[mainMenu_fastMemory]);
+
+	if (mainMenu_immediate_blits)
+	    checkBox_immediate_blits->setSelected(true);
+	else
+	    checkBox_immediate_blits->setSelected(false);
 	
 #if defined(PANDORA) && !defined(WIN32)
     if(dropDown_pandspeed->getSelected() != (mainMenu_cpuSpeed - 500) / 20)

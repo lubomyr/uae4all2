@@ -23,6 +23,7 @@
 #include "m68k/m68k_intrf.h"
 #include "blitter.h"
 #include "blit.h"
+#include "menu_config.h"
 
 #ifdef USE_BLITTER_EXTRA_INLINE
 #define _INLINE_ __inline__
@@ -67,6 +68,8 @@ static int blit_last_cycle, blit_dmacount, blit_dmacount2;
 static int blit_nod;
 static const uae_u8 *blit_diag;
 static int ddat1use;
+static int blit_slowdown;
+static int immediate_blits;
 
 /*
 Blitter Idle Cycle:
@@ -523,7 +526,7 @@ void blitter_handler(void)
 	eventtab[ev_blitter].oldcycles = get_cycles ();
 	eventtab[ev_blitter].evtime = 10 * CYCLE_UNIT + get_cycles (); /* wait a little */
 		blitter_stuck++;
-		if (blitter_stuck < 20000)
+		if (blitter_stuck < 20000 || mainMenu_immediate_blits)
 			return; /* gotta come back later. */
 		/* "free" blitter in immediate mode if it has been "stuck" ~3 frames
 		* fixes some JIT game incompatibilities
@@ -532,13 +535,13 @@ void blitter_handler(void)
 	blitter_stuck = 0;
 
 // blitter_slowdown doesn't work at the moment
-//	if (blit_slowdown > 0) {
-//	eventtab[ev_blitter].active = 1;
-//	eventtab[ev_blitter].oldcycles = get_cycles ();
-//	eventtab[ev_blitter].evtime = blit_slowdown * CYCLE_UNIT + get_cycles (); /* wait a little */
-//		blit_slowdown = -1;
-//		return;
-//	}
+	if (blit_slowdown > 0 && !mainMenu_immediate_blits) {
+	eventtab[ev_blitter].active = 1;
+	eventtab[ev_blitter].oldcycles = get_cycles ();
+	eventtab[ev_blitter].evtime = blit_slowdown * CYCLE_UNIT + get_cycles (); /* wait a little */
+		blit_slowdown = -1;
+		return;
+	}
 
 	actually_do_blit ();
 	blitter_done ();
@@ -613,6 +616,7 @@ void do_blitter(void)
 	int cycles;
 
 	bltstate = BLT_done;
+	immediate_blits = mainMenu_immediate_blits;
 
 	blit_firstline_cycles = blit_first_cycle = get_cycles ();
 	blit_last_cycle = 0;
@@ -645,6 +649,9 @@ void do_blitter(void)
 		return;
 	}
 
+	if (mainMenu_immediate_blits)
+		cycles = 1;
+	
 	blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
     eventtab[ev_blitter].active = 1;
     eventtab[ev_blitter].oldcycles = get_cycles ();

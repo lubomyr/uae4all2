@@ -96,4 +96,7 @@ extern int menuLoad_extfilter;
 extern int mainMenu_quickSwitch;
 extern int mainMenu_FloatingJoystick;
 #endif
+
+extern int mainMenu_immediate_blits;
+
 #endif

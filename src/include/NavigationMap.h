@@ -24,10 +24,10 @@ NavigationMap navMap[] =
   { "OCS", "FastMem", "3.1", "68020", "ECS" },
 #if defined(PANDORA) && !defined(WIN32)
   { "ECS", "FastMem", "PandSpeed", "OCS", "AGA" },
-  { "AGA", "FastMem", "PandSpeed", "ECS", "Reset" },
+  { "AGA", "FastMem", "ImmediateBlits", "ECS", "Reset" },
 #else
   { "ECS", "FastMem", "AROS", "OCS", "AGA" },
-  { "AGA", "FastMem", "AROS", "ECS", "Reset" },
+  { "AGA", "FastMem", "ImmediateBlits", "ECS", "Reset" },
 #endif
 
   { "1.2", "68000", "7MHz", "tabbedArea", "1.3" },
@@ -35,10 +35,17 @@ NavigationMap navMap[] =
   { "2.0", "OCS", "28MHz", "1.3", "3.1" },
   { "3.1", "OCS", "28MHz", "2.0", "AROS" },
 #if defined(PANDORA) && !defined(WIN32)
-  { "AROS", "ECS", "28MHz", "3.1", "PandSpeed" },
+  { "AROS", "ECS", "28MHz", "3.1", "ImmediateBlits" },
 #endif
 #if defined(WIN32) || defined(ANDROIDSDL)
-  { "AROS", "ECS", "112MHz", "3.1", "Reset" },
+  { "AROS", "ECS", "112MHz", "3.1", "ImmediateBlits" },
+#endif
+
+#if defined(PANDORA) && !defined(WIN32)
+  { "ImmediateBlits", "AGA", "28MHz", "AROS", "PandSpeed" },
+#endif
+#if defined(WIN32) || defined(ANDROIDSDL)
+  { "ImmediateBlits", "AGA", "112MHz", "AROS", "Reset" },
 #endif
 
   { "7MHz", "1.2", "ChipMem", "tabbedArea", "14MHz" },
@@ -52,7 +59,7 @@ NavigationMap navMap[] =
   { "112MHz", "AROS", "FastMem", "56MHz", "Reset" },
 #endif
 
-  { "PandSpeed", "ECS", "Chip8Mb", "---", "---" },
+  { "PandSpeed", "AGA", "FastMem", "---", "---" },
 
   { "ChipMem", "---", "---", "tabbedArea", "SlowMem" },
   { "SlowMem", "---", "---", "ChipMem", "FastMem" },

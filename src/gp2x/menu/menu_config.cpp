@@ -133,6 +133,8 @@ int mainMenu_quickSwitch=0;
 int mainMenu_FloatingJoystick=0;
 #endif
 
+int mainMenu_immediate_blits=1;
+
 void SetDefaultMenuSettings(int general)
 {
 	mainMenu_chipMemory = DEFAULT_CHIPMEM_SELECT;
@@ -1006,6 +1008,9 @@ int saveconfig(int general)
 	snprintf((char*)buffer, 255, "FloatingJoystick=%d\n",mainMenu_FloatingJoystick);
  	fputs(buffer,f);
 #endif
+	snprintf((char*)buffer, 255, "immediate_blits=%d\n",mainMenu_immediate_blits);
+ 	fputs(buffer,f);
+	
 	fclose(f);
 	return 1;
 }
@@ -1254,6 +1259,7 @@ void loadconfig(int general)
 		fscanf(f,"quick_switch=%d\n",&mainMenu_quickSwitch);
 		fscanf(f,"FloatingJoystick=%d\n",&mainMenu_FloatingJoystick);
 #endif
+		fscanf(f,"immediate_blits=%d\n",&mainMenu_immediate_blits);
 	
 		fclose(f);
 	}
