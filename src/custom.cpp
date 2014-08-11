@@ -457,13 +457,16 @@ static const int fetchstarts[] = { 3,2,1,0, 4,3,2,0, 5,4,3,0 };
 static const int fm_maxplanes[] = { 3,2,1,0, 3,3,2,0, 3,3,3,0 };
 
 static int cycle_diagram_table[3][3][9][32];
+// blitter_slowdown doesn't work at the moment (causes gfx glitches in Shadow of the Beast)
+//static int cycle_diagram_free_cycles[3][3][9];
+//static int cycle_diagram_total_cycles[3][3][9];
 static int *curr_diagram;
 static int cycle_sequences[3 * 8] = { 2,1,2,1,2,1,2,1, 4,2,3,1,4,2,3,1, 8,4,6,2,7,3,5,1 };
 
 static _INLINE_ void create_cycle_diagram_table(void)
 {
    int fm, res, cycle, planes, v;
-   int fetch_start, max_planes;
+   int fetch_start, max_planes/*, freecycles*/;
    int *cycle_sequence;
    
    for (fm = 0; fm <= 2; fm++) {
@@ -473,6 +476,7 @@ static _INLINE_ void create_cycle_diagram_table(void)
          cycle_sequence = &cycle_sequences[(max_planes - 1) * 8];
          max_planes = 1 << max_planes;
          for (planes = 0; planes <= 8; planes++) {
+//            freecycles = 0;
             for (cycle = 0; cycle < 32; cycle++)
                cycle_diagram_table[fm][res][planes][cycle] = -1;
             if (planes <= max_planes) {
@@ -481,10 +485,13 @@ static _INLINE_ void create_cycle_diagram_table(void)
                      v = cycle_sequence[cycle & 7];
                   } else {
                      v = 0;
+//                     freecycles++;
                   }
                   cycle_diagram_table[fm][res][planes][cycle] = v;
                }
             }
+//				    cycle_diagram_free_cycles[fm][res][planes] = freecycles;
+//				    cycle_diagram_total_cycles[fm][res][planes] = fetch_start;
          }
       }
    }
@@ -2156,6 +2163,11 @@ static _INLINE_ void DMACON (int hpos, uae_u16 v)
 		}
 		setnasty();
 	}
+
+	if (dmaen (DMA_BLITTER) && bltstate == BLT_init) {
+		blitter_check_start ();
+	}
+
 	if ((dmacon & (DMA_BLITPRI | DMA_BLITTER | DMA_MASTER)) != (DMA_BLITPRI | DMA_BLITTER | DMA_MASTER))
 		unset_special (SPCFLAG_BLTNASTY);
 	
@@ -2523,10 +2535,12 @@ static _INLINE_ void BLTCON0L (uae_u16 v)
 {
 	if (! (currprefs.chipset_mask & CSMASK_ECS_AGNUS))
 		return;
-	maybe_blit (0); bltcon0 = (bltcon0 & 0xFF00) | (v & 0xFF);
+	maybe_blit (0); 
+	bltcon0 = (bltcon0 & 0xFF00) | (v & 0xFF);
+	blinea_shift = bltcon0 >> 12;
 }
 
-#define BLTCON1(V) maybe_blit (0); bltcon1 = V
+#define BLTCON1(V) maybe_blit (0); bltcon1 = V; blitsign = bltcon1 & 0x40;
 #define BLTAFWM(V) maybe_blit (0); blt_info.bltafwm = V
 #define BLTALWM(V) maybe_blit (0); blt_info.bltalwm = V
 #define BLTAPTH(V) maybe_blit (0); bltapt = (bltapt & 0xffff) | ((uae_u32)V << 16)
@@ -2547,7 +2561,6 @@ static _INLINE_ void BLTSIZE (uae_u16 v)
     if (!blt_info.vblitsize) blt_info.vblitsize = 1024;
     if (!blt_info.hblitsize) blt_info.hblitsize = 64;
 
-    bltstate = BLT_init;
     do_blitter ();
 }
 
@@ -2556,7 +2569,7 @@ static _INLINE_ void BLTSIZV (uae_u16 v)
 	if (! (currprefs.chipset_mask & CSMASK_ECS_AGNUS))
 		return;
 	maybe_blit (0);
-	oldvblts = v & 0x7FFF;
+	blt_info.vblitsize = v & 0x7FFF;
 }
 
 static _INLINE_ void BLTSIZH (uae_u16 v)
@@ -2565,10 +2578,8 @@ static _INLINE_ void BLTSIZH (uae_u16 v)
 		return;
 	maybe_blit (0);
 	blt_info.hblitsize = v & 0x7FF;
-	blt_info.vblitsize = oldvblts;
 	if (!blt_info.vblitsize) blt_info.vblitsize = 32768;
 	if (!blt_info.hblitsize) blt_info.hblitsize = 0x800;
-	bltstate = BLT_init;
 	do_blitter ();
 }
 
@@ -3550,7 +3561,14 @@ static void hsync_handler (void)
       update_audio();
       fetch_audio();
    }
-   
+ 
+/* blitter_slowdown doesn't work at the moment (causes gfx glitches in Shadow of the Beast)
+	 if (bltstate != BLT_done && dmaen (DMA_BITPLANE) && diwstate == DIW_waiting_stop) {
+		 blitter_slowdown (thisline_decision.plfleft, thisline_decision.plfright - (16 << fetchmode),
+			 cycle_diagram_total_cycles[fetchmode][res_bplcon0][planes_bplcon0],
+			 cycle_diagram_free_cycles[fetchmode][res_bplcon0][planes_bplcon0]);
+	 }
+*/   
    /* In theory only an equality test is needed here - but if a program
        goes haywire with the VPOSW register, it can cause us to miss this,
        with vpos going into the thousands (and all the nasty consequences
@@ -3952,7 +3970,7 @@ uae_u32 REGPARAM2 custom_wget (uaecptr addr)
        addr &= ~1;
        v = custom_wget_1 (addr) << 8;
        v |= custom_wget_1 (addr + 2) >> 8;
-       return v;
+       return v & 0xFFFF;
     }
     /***************/
     return custom_wget_1 (addr);
@@ -3960,7 +3978,7 @@ uae_u32 REGPARAM2 custom_wget (uaecptr addr)
 
 uae_u32 REGPARAM2 custom_bget (uaecptr addr)
 {
-    return custom_wget (addr & 0xfffe) >> (addr & 1 ? 0 : 8);
+    return (custom_wget_1 (addr & 0xfffe) >> (addr & 1 ? 0 : 8)) & 0xFF;
 }
 
 uae_u32 REGPARAM2 custom_lget (uaecptr addr)
@@ -4228,7 +4246,7 @@ uae_u8 *restore_custom (uae_u8 *src)
     bltdpt=RL; // u32=RL; BLTDPTH(u32);	/* 054-057 BLTDPT */
     RW;				/* 058 BLTSIZE */
     RW;				/* 05A BLTCON0L */
-    oldvblts = RW;		/* 05C BLTSIZV */
+    ru16=RW; BLTSIZV(ru16);		/* 05C BLTSIZV */
     RW;				/* 05E BLTSIZH */
     ru16=RW; BLTCMOD(ru16);	/* 060 BLTCMOD */
     ru16=RW; BLTBMOD(ru16);	/* 062 BLTBMOD */
@@ -4370,7 +4388,7 @@ uae_u8 *save_custom (int *len)
     SL (bltdpt);		/* 054-057 BLTCPT */
     SW (0);			/* 058 BLTSIZE */
     SW (0);			/* 05A BLTCON0L (use BLTCON0 instead) */
-    SW (oldvblts);		/* 05C BLTSIZV */
+    SW (blt_info.vblitsize);		/* 05C BLTSIZV */
     SW (blt_info.hblitsize);	/* 05E BLTSIZH */
     SW (blt_info.bltcmod);	/* 060 BLTCMOD */
     SW (blt_info.bltbmod);	/* 062 BLTBMOD */

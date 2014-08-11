@@ -20,9 +20,9 @@ extern enum blitter_states {
 
 extern struct bltinfo blt_info;
 
-extern uae_u16 bltsize, oldvblts;
+extern uae_u16 bltsize;
 extern uae_u16 bltcon0,bltcon1;
-extern int blinea_shift;
+extern int blinea_shift, blitsign;
 extern uae_u32 bltapt,bltbpt,bltcpt,bltdpt;
 
 extern void maybe_blit (int);
@@ -31,6 +31,8 @@ extern void blitter_handler (void);
 extern void build_blitfilltable (void);
 extern void do_blitter (void);
 extern void blitter_done_notify (void);
+extern void blitter_slowdown (int, int, int, int);
+extern void blitter_check_start (void);
 typedef void blitter_func(uaecptr, uaecptr, uaecptr, uaecptr, struct bltinfo *_GCCRES_);
 
 #define BLITTER_MAX_WORDS 2048
