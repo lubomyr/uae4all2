@@ -62,6 +62,7 @@ struct uae_prefs {
 #endif
 
     struct uaedev_mount_info *mountinfo;
+    bool immediate_blits;
 };
 
 extern void default_prefs_uae (struct uae_prefs *);

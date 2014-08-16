@@ -25,6 +25,7 @@
 
 
 extern int kickstart;
+extern int blitter_in_partial_mode;
 
 
 namespace widgets
@@ -50,6 +51,9 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_chipsetocs;
   gcn::UaeRadioButton* radioButton_chipsetecs;
   gcn::UaeRadioButton* radioButton_chipsetaga;
+  gcn::Container* backgrd_blittermode;
+  gcn::Label* label_blittermode;
+  gcn::UaeDropDown* dropDown_blittermode;
   gcn::Window *group_kickstart;
   gcn::UaeRadioButton* radioButton_kick12;
   gcn::UaeRadioButton* radioButton_kick13;
@@ -79,8 +83,7 @@ namespace widgets
   gcn::Container* backgrd_fastsize;  
   gcn::Slider* slider_chipmem;
   gcn::Slider* slider_slowmem;
-  gcn::Slider* slider_fastmem;
-  gcn::CheckBox* checkBox_immediate_blits;
+  gcn::Slider* slider_fastmem;  
 
 #ifdef PANDORA
   gcn::Container* backgrd_pandspeed;
@@ -116,6 +119,32 @@ namespace widgets
 #endif
 
 
+  class BlitterModeListModel : public gcn::ListModel
+  {
+    private:
+      std::ostringstream ostr[3];
+
+    public:
+      BlitterModeListModel()
+      {
+	      ostr[0] << "normal";
+	      ostr[1] << "immed.";
+	      ostr[2] << "improved";
+      }
+      
+      int getNumberOfElements()
+      {
+        return 3;
+      }
+
+      std::string getElementAt(int i)
+      {
+        return ostr[i].str().c_str();
+      }
+  };
+  BlitterModeListModel blitterModeList;  
+
+
   class CPUButtonActionListener : public gcn::ActionListener
   {
     public:
@@ -137,15 +166,41 @@ namespace widgets
       void action(const gcn::ActionEvent& actionEvent)
       {
   	    if (actionEvent.getSource() == radioButton_chipsetocs)
-      		mainMenu_chipset=0;
+      		mainMenu_chipset = (mainMenu_chipset & 0xff00) | 0; // Leave immediate_blit flag untouched
   	    else if (actionEvent.getSource() == radioButton_chipsetecs)
-      		mainMenu_chipset=1;
+      		mainMenu_chipset = (mainMenu_chipset & 0xff00) | 1;
   	    else
-      		mainMenu_chipset=2;
+      		mainMenu_chipset = (mainMenu_chipset & 0xff00) | 2;
     		UpdateChipsetSettings();
       }
   };
   ChipsetButtonActionListener* chipsetButtonActionListener;
+
+
+  class BlitterModeActionListener : public gcn::ActionListener
+  {
+    public:
+      void action(const gcn::ActionEvent& actionEvent)
+      {
+  	    if (actionEvent.getSource() == dropDown_blittermode)
+	      {
+  	      switch(dropDown_blittermode->getSelected())
+  	      {
+  	        case 1:
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff) | 0x100;
+  	          break;
+  	        case 2:
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff) | 0x200;
+  	          break;
+  	        default:
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff);
+  	          break;
+  	      }
+  	      UpdateChipsetSettings();
+  	    }
+      }
+  };
+  BlitterModeActionListener* blitterModeActionListener;
 
 
   class KickstartButtonActionListener : public gcn::ActionListener
@@ -189,6 +244,7 @@ namespace widgets
   };
   CPUSpeedButtonActionListener* cpuSpeedButtonActionListener;
 
+
   class MemorySliderActionListener : public gcn::ActionListener
   {
     public:
@@ -210,20 +266,7 @@ namespace widgets
   };
   MemorySliderActionListener* memorySliderActionListener;
 
-  class ImmediateblitsActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
-	    if (actionEvent.getSource() == checkBox_immediate_blits)
-	       if (checkBox_immediate_blits->isSelected())
-		  mainMenu_immediate_blits=1;
-	       else
-		  mainMenu_immediate_blits=0;	      
-      }
-  };
-  ImmediateblitsActionListener* immediateblitsActionListener;
-  
+
 #if defined(PANDORA) && !defined(WIN32)
   class PandSpeedActionListener : public gcn::ActionListener
   {
@@ -283,6 +326,23 @@ namespace widgets
   	group_chipset->setMovable(false);
   	group_chipset->setSize(80,115);
     group_chipset->setBaseColor(baseCol);
+
+    // Select Blitter mode
+  	label_blittermode = new gcn::Label("Blitter mode");
+  	label_blittermode->setPosition(4, 2);
+  	backgrd_blittermode = new gcn::Container();
+  	backgrd_blittermode->setOpaque(true);
+  	backgrd_blittermode->setBaseColor(baseColLabel);
+  	backgrd_blittermode->setPosition(105, 205);
+  	backgrd_blittermode->setSize(85, 21);
+    backgrd_blittermode->add(label_blittermode);
+  	dropDown_blittermode = new gcn::UaeDropDown(&blitterModeList);
+  	dropDown_blittermode->setPosition(200,205);
+  	dropDown_blittermode->setWidth(85);
+    dropDown_blittermode->setBaseColor(baseCol);
+    dropDown_blittermode->setId("BlitterMode");
+    blitterModeActionListener = new BlitterModeActionListener();
+  	dropDown_blittermode->addActionListener(blitterModeActionListener);
 
     // Select Kickstart
   	radioButton_kick12 = new gcn::UaeRadioButton("1.2", "radiokickgroup");
@@ -365,7 +425,7 @@ namespace widgets
 #endif
 	group_cpuspeed->setBaseColor(baseCol);
 
-    // Select Memory
+    // Select memory
   	label_chipmem = new gcn::Label("Chip");
   	label_chipmem->setPosition(4, 2);
   	label_slowmem = new gcn::Label("Slow");
@@ -436,7 +496,7 @@ namespace widgets
   	backgrd_fastsize->setPosition(215, 100);
   	backgrd_fastsize->setSize(50, 21);
     backgrd_fastsize->add(label_fastsize);
-		
+
   	window_memory = new gcn::Window("Memory");
   	window_memory->add(icon_winlogo);
   	window_memory->setPosition(300,20);
@@ -452,14 +512,6 @@ namespace widgets
   	window_memory->setMovable(false);
   	window_memory->setSize(287,160);
     window_memory->setBaseColor(baseCol);
-	
-    // Select immediate blits
-	checkBox_immediate_blits = new gcn::CheckBox("Immediate blits");
-	checkBox_immediate_blits->setPosition(105, 210);
-	checkBox_immediate_blits->setId("ImmediateBlits");
-	checkBox_immediate_blits->setBaseColor(baseColLabel);
-	immediateblitsActionListener = new ImmediateblitsActionListener();
-	checkBox_immediate_blits->addActionListener(immediateblitsActionListener);
 
 #if defined(PANDORA) && !defined(WIN32)
     // Pandora CPU speed
@@ -468,11 +520,11 @@ namespace widgets
   	backgrd_pandspeed = new gcn::Container();
   	backgrd_pandspeed->setOpaque(true);
   	backgrd_pandspeed->setBaseColor(baseColLabel);
-  	backgrd_pandspeed->setPosition(105, 240);
+  	backgrd_pandspeed->setPosition(300, 170);
   	backgrd_pandspeed->setSize(100, 21);
     backgrd_pandspeed->add(label_pandspeed);
   	dropDown_pandspeed = new gcn::UaeDropDown(&pandSpeedList);
-  	dropDown_pandspeed->setPosition(215,240);
+  	dropDown_pandspeed->setPosition(410, 170);
   	dropDown_pandspeed->setWidth(70);
     dropDown_pandspeed->setBaseColor(baseCol);
     dropDown_pandspeed->setId("PandSpeed");
@@ -484,10 +536,11 @@ namespace widgets
 	  tab_main->add(icon_winlogo);
 	  tab_main->add(group_cpu);
 	  tab_main->add(group_chipset);
+    tab_main->add(backgrd_blittermode);
+  	tab_main->add(dropDown_blittermode);
 	  tab_main->add(group_kickstart);
 	  tab_main->add(group_cpuspeed);
 	  tab_main->add(window_memory);
-	  tab_main->add(checkBox_immediate_blits);
 #if defined(PANDORA) && !defined(WIN32)
     tab_main->add(backgrd_pandspeed);
   	tab_main->add(dropDown_pandspeed);
@@ -507,6 +560,9 @@ namespace widgets
     delete radioButton_chipsetocs;
     delete radioButton_chipsetecs;        
     delete radioButton_chipsetaga;
+    delete backgrd_blittermode;
+    delete label_blittermode;
+    delete dropDown_blittermode;
     delete group_kickstart;
     delete radioButton_kick12;
     delete radioButton_kick13;
@@ -536,8 +592,7 @@ namespace widgets
   	delete backgrd_fastsize;  
   	delete slider_chipmem;
   	delete slider_slowmem;
-  	delete slider_fastmem;
-	delete checkBox_immediate_blits;
+  	delete slider_fastmem;  
 
 #if defined(PANDORA) && !defined(WIN32)
     delete backgrd_pandspeed;
@@ -547,10 +602,10 @@ namespace widgets
 
     delete cpuButtonActionListener;
     delete chipsetButtonActionListener;
+    delete blitterModeActionListener;
     delete kickstartButtonActionListener;
     delete cpuSpeedButtonActionListener;
-	delete memorySliderActionListener;
-	delete immediateblitsActionListener;
+	  delete memorySliderActionListener;
 #if defined(PANDORA) && !defined(WIN32)
     delete pandSpeedActionListener;
 #endif
@@ -564,12 +619,19 @@ namespace widgets
 	  else if (mainMenu_CPU_model==1)
 	    radioButton_cpu68020->setSelected(true);
 
-  	if (mainMenu_chipset==0)
+  	if ((mainMenu_chipset & 0xff) == 0)
 	    radioButton_chipsetocs->setSelected(true);
-	  else if (mainMenu_chipset==1)
+	  else if ((mainMenu_chipset & 0xff) == 1)
 	    radioButton_chipsetecs->setSelected(true);
-	  else if (mainMenu_chipset==2)
+	  else if ((mainMenu_chipset & 0xff) == 2)
 	    radioButton_chipsetaga->setSelected(true);
+
+    if (mainMenu_chipset & 0x100)
+      dropDown_blittermode->setSelected(1);
+    else if (mainMenu_chipset & 0x200)
+      dropDown_blittermode->setSelected(2);
+    else
+      dropDown_blittermode->setSelected(0);
 
   	if (kickstart==0)
 	    radioButton_kick12->setSelected(true);
@@ -597,7 +659,7 @@ namespace widgets
 
 	const char *ChipMem_list[] = { "512Kb", "1Mb", "2Mb", "4Mb", "8Mb" };
 	const char *SlowMem_list[] = { "None", "512Kb", "1Mb", "1.5Mb", "1.8Mb" };
-	const char *FastMem_list[] = { "None", "1Mb", "2Mb", "4mb", "8Mb" };
+	const char *FastMem_list[] = { "None", "1Mb", "2Mb", "4Mb", "8Mb" };
 	slider_chipmem->setValue(mainMenu_chipMemory);
 	slider_slowmem->setValue(mainMenu_slowMemory);
 	slider_fastmem->setValue(mainMenu_fastMemory);
@@ -605,11 +667,6 @@ namespace widgets
 	label_slowsize->setCaption(SlowMem_list[mainMenu_slowMemory]);
 	label_fastsize->setCaption(FastMem_list[mainMenu_fastMemory]);
 
-	if (mainMenu_immediate_blits)
-	    checkBox_immediate_blits->setSelected(true);
-	else
-	    checkBox_immediate_blits->setSelected(false);
-	
 #if defined(PANDORA) && !defined(WIN32)
     if(dropDown_pandspeed->getSelected() != (mainMenu_cpuSpeed - 500) / 20)
       dropDown_pandspeed->setSelected((mainMenu_cpuSpeed - 500) / 20);

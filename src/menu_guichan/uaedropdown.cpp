@@ -21,4 +21,33 @@ namespace gcn
     UaeDropDown::~UaeDropDown()
     {
     }
+    
+    
+    void UaeDropDown::keyPressed(KeyEvent& keyEvent)
+    {
+        if (keyEvent.isConsumed())
+            return;
+        
+        Key key = keyEvent.getKey();
+
+        if ((key.getValue() == Key::ENTER || key.getValue() == Key::SPACE)
+            && !mDroppedDown)
+        {
+            dropDown();
+            keyEvent.consume();
+        }
+        else if (key.getValue() == Key::UP)
+        {
+            setSelected(getSelected() - 1);
+            keyEvent.consume();
+            distributeActionEvent();
+        }
+        else if (key.getValue() == Key::DOWN)
+        {
+            setSelected(getSelected() + 1);
+            keyEvent.consume();
+            distributeActionEvent();
+        }
+    }
+
 }

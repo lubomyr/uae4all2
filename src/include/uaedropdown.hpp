@@ -21,6 +21,8 @@ namespace gcn
                   ListBox *listBox = NULL);
 
       virtual ~UaeDropDown();
+      
+      virtual void keyPressed(KeyEvent& keyEvent);
   };
 }
 

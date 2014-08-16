@@ -192,6 +192,7 @@ static enum diw_states diwstate, hdiwstate, ddfstate;
 static unsigned int clxdat, clxcon, clxcon2, clxcon_bpl_enable, clxcon_bpl_match;
 static int clx_sprmask;
 
+#define FAST_COPPER
 enum copper_states {
     COP_stop,
     COP_read1_in2,
@@ -206,7 +207,9 @@ enum copper_states {
     COP_skip_in4,
     COP_skip_in2,
     COP_wait1,
-    COP_wait
+    COP_wait,
+    COP_skip1,
+    COP_strobe_delay
 };
 
 struct copper {
@@ -220,13 +223,17 @@ struct copper {
     unsigned int ignore_next;
     int vcmp, hcmp;
 
+#ifdef FAST_COPPER
     /* When we schedule a copper event, knowing a few things about the future
        of the copper list can reduce the number of sync_with_cpu calls
        dramatically.  */
     unsigned int first_sync;
     unsigned int regtypes_modified;
+#endif
+    int strobe; /* COPJMP1 / COPJMP2 accessed */
 } UAE4ALL_ALIGN;
 
+#ifdef FAST_COPPER
 #define REGTYPE_NONE 0
 #define REGTYPE_COLOR 1
 #define REGTYPE_SPRITE 2
@@ -244,6 +251,7 @@ struct copper {
 
 
 static unsigned int regtypes[512];
+#endif
 
 static struct copper cop_state;
 static int copper_enabled_thisline;
@@ -2088,9 +2096,10 @@ static _INLINE_ void VPOSW (uae_u16 v)
 #define COP2LCH(V) cop2lc = (cop2lc & 0xffff) | ((uae_u32)V << 16)
 #define COP2LCL(V) cop2lc = (cop2lc & ~0xffff) | (V & 0xfffe)
 
-static _INLINE_ void start_copper (void)
+static void COPJMP (int num)
 {
 	int was_active = eventtab[ev_copper].active;
+  cop_state.ip = num == 1 ? cop1lc : cop2lc;
 	eventtab[ev_copper].active = 0;
 	if (was_active)
 		events_schedule ();
@@ -2106,24 +2115,12 @@ static _INLINE_ void start_copper (void)
 	}
 }
 
-static _INLINE_ void COPJMP1 (uae_u16 a)
-{
-    cop_state.ip = cop1lc;
-    start_copper ();
-}
-
-static _INLINE_ void COPJMP2 (uae_u16 a)
-{
-    cop_state.ip = cop2lc;
-    start_copper ();
-}
-
 static __inline__ void COPCON (uae_u16 a)
 {
     copcon = a;
 }
 
-static _INLINE_ void DMACON (int hpos, uae_u16 v)
+static _INLINE_ void DMACON (unsigned int hpos, uae_u16 v)
 {
 	int i;
 	
@@ -2164,9 +2161,16 @@ static _INLINE_ void DMACON (int hpos, uae_u16 v)
 		setnasty();
 	}
 
-	if (dmaen (DMA_BLITTER) && bltstate == BLT_init) {
-		blitter_check_start ();
+	if (dmaen (DMA_BLITTER))
+	{ 
+	  if(bltstate == BLT_init)
+		  blitter_check_start ();
+		else if(bltstate == BLT_waitDMA)
+		  blitter_dma_enabled();
 	}
+	else if (bltstate == BLT_work) {
+    blitter_dma_disabled();
+  }
 
 	if ((dmacon & (DMA_BLITPRI | DMA_BLITTER | DMA_MASTER)) != (DMA_BLITPRI | DMA_BLITTER | DMA_MASTER))
 		unset_special (SPCFLAG_BLTNASTY);
@@ -2863,6 +2867,7 @@ static __inline__ int dangerous_reg (int reg)
 	return 1;
 }
 
+#ifdef FAST_COPPER
 /* The future, Conan?
    We try to look ahead in the copper list to avoid doing continuous calls
    to updat_copper (which is what happens when SPCFLAG_COPPER is set).  If
@@ -3000,6 +3005,7 @@ static _INLINE_ void predict_copper (void)
 		events_schedule ();
 	}
 }
+#endif
 
 static _INLINE_ void perform_copper_write (int old_hpos)
 {
@@ -3026,15 +3032,22 @@ static _INLINE_ void perform_copper_write (int old_hpos)
 }
 
 static int isagnus[]= {
-    1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,
-    1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* BPLxPT */
-    0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* SPRxPT */
+    1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,1,1,0,0,0,0,0,0,0,0, /* 32 0x00 - 0x3e */
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* 27 0x40 - 0x74 */
+
+    0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0, /* 21 */
+    1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0, /* 32 0xa0 - 0xde */
+    /* BPLxPTH/BPLxPTL */
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* 16 */
+    /* BPLCON0-3,BPLMOD1-2 */
+    0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0, /* 16 */
+    /* SPRxPTH/SPRxPTL */
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, /* 16 */
+    /* SPRxPOS/SPRxCTL/SPRxDATA/SPRxDATB */
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* colors */
+    /* COLORxx */
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    /* RESERVED */
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
@@ -3064,7 +3077,7 @@ static _INLINE_ void update_copper (int until_hpos)
 		
 		/* So we know about the fetch state.  */
 		decide_line (c_hpos);
-		
+
 		switch (cop_state.state) {
 			case COP_read1_in2:
 				cop_state.state = COP_read1;
@@ -3210,6 +3223,7 @@ static _INLINE_ void update_copper (int until_hpos)
 				hp = c_hpos & (cop_state.saved_i2 & 0xFE);
 				if ((vp == cop_state.vcmp) && (hp < cop_state.hcmp)) {
 					/* Position not reached yet.  */
+#ifdef FAST_COPPER
 					if ((cop_state.saved_i2 & 0xFE) == 0xFE) {
 						int wait_finish = cop_state.hcmp - 2;
 						/* This will leave c_hpos untouched if it's equal to wait_finish.  */
@@ -3220,6 +3234,7 @@ static _INLINE_ void update_copper (int until_hpos)
 						} else
 							c_hpos = until_hpos;
 					}	      
+#endif
 					break;
 				}
 				
@@ -3244,11 +3259,13 @@ static _INLINE_ void update_copper (int until_hpos)
 	out:
 	cop_state.hpos = c_hpos;
 	
+#ifdef FAST_COPPER
     /* The test against maxhpos also prevents us from calling predict_copper
        when we are being called from hsync_handler, which would not only be
        stupid, but actively harmful.  */
 	if ((_68k_spcflags & SPCFLAG_COPPER) && (c_hpos + 8 < maxhpos))
 		predict_copper ();
+#endif
 }
 
 static _INLINE_ void compute_spcflag_copper (void)
@@ -3266,7 +3283,9 @@ static _INLINE_ void compute_spcflag_copper (void)
 	}
 	copper_enabled_thisline = 1;
 	
+#ifdef FAST_COPPER
 	predict_copper ();
+#endif
 	
 	if (! eventtab[ev_copper].active)
 		setcopper();
@@ -3302,12 +3321,16 @@ void do_copper (void)
 
 /* ADDR is the address that is going to be read/written; this access is
    the reason why we want to update the copper.  This function is also
-   used from hsync_handler to finish up the line; for this case, we check
-   hpos against maxhpos.  */
+   used from hsync_handler to finish up the line.  */
+#ifdef FAST_COPPER
 static __inline__ void sync_copper_with_cpu (int hpos, int do_schedule, unsigned int addr)
+#else
+static __inline__ void sync_copper_with_cpu (int hpos, int do_schedule)
+#endif
 {
 	/* Need to let the copper advance to the current position.  */
 	if (eventtab[ev_copper].active) {
+#ifdef FAST_COPPER
 		if (hpos != maxhpos) {
 			/* There might be reasons why we don't actually need to bother
 	       updating the copper.  */
@@ -3317,6 +3340,7 @@ static __inline__ void sync_copper_with_cpu (int hpos, int do_schedule, unsigned
 			if ((cop_state.regtypes_modified & regtypes[addr & 0x1FE]) == 0)
 				return;
 		}
+#endif
 		
 		eventtab[ev_copper].active = 0;
 		if (do_schedule)
@@ -3541,10 +3565,17 @@ static void vsync_handler (void)
 
 static void hsync_handler (void)
 {
+#ifdef FAST_COPPER
    /* Using 0x8A makes sure that we don't accidentally trip over the
        modified_regtypes check.  */
    sync_copper_with_cpu (maxhpos, 0, 0x8A);
+#else
+   sync_copper_with_cpu (maxhpos, 0);
+#endif
    
+   if(blitter_in_partial_mode && bltstate == BLT_work)
+     blitter_do_partial(0);
+
    finish_decisions ();
    if (thisline_decision.plfleft != -1) {
       DO_SPRITE_COLLISIONS
@@ -3569,13 +3600,14 @@ static void hsync_handler (void)
 			 cycle_diagram_free_cycles[fetchmode][res_bplcon0][planes_bplcon0]);
 	 }
 */   
-   /* In theory only an equality test is needed here - but if a program
+
+  /* In theory only an equality test is needed here - but if a program
        goes haywire with the VPOSW register, it can cause us to miss this,
        with vpos going into the thousands (and all the nasty consequences
        this has).  */
    
    vpos++;
-   if (vpos  >= (maxvpos + (lof != 0)))
+   if (vpos  >= (maxvpos + (lof == 0 ? 0 : 1)))
    {
       vpos=0;
       vsync_handler ();
@@ -3599,6 +3631,7 @@ static void hsync_handler (void)
    compute_spcflag_copper ();
 }
 
+#ifdef FAST_COPPER
 static _INLINE_ void init_regtypes (void)
 {
     int i;
@@ -3649,6 +3682,7 @@ static _INLINE_ void init_regtypes (void)
 	}
     }
 }
+#endif
 
 void init_eventtab (void)
 {
@@ -3683,7 +3717,8 @@ void customreset (void)
 
 	if (!savestate_state)
 	{
-		currprefs.chipset_mask = changed_prefs.chipset_mask; 
+		currprefs.chipset_mask = changed_prefs.chipset_mask;
+		currprefs.immediate_blits = changed_prefs.immediate_blits; 
 		if ((currprefs.chipset_mask & CSMASK_AGA) == 0) {
 			for (i = 0; i < 32; i++) {
 				current_colors.color_uae_regs_ecs[i] = 0;
@@ -3763,7 +3798,10 @@ void customreset (void)
 	
 	reset_decisions ();
 	
+#ifdef FAST_COPPER
 	init_regtypes ();	
+#endif
+
 	sprite_buffer_res = currprefs.chipset_mask & CSMASK_AGA ? RES_HIRES : RES_LORES;
 	if (savestate_state == STATE_RESTORE)
 	{
@@ -3774,9 +3812,9 @@ void customreset (void)
 		INTENA (0);
 		INTREQ (0);
 		
-		COPJMP1 (0);
 		if (diwhigh)
 			diwhigh_written = 1;
+		COPJMP (1);
 		v = bplcon0;
 		BPLCON0 (0, 0);
 		BPLCON0 (0, v);
@@ -3961,7 +3999,11 @@ static __inline__ uae_u32 REGPARAM2 custom_wget_1 (uaecptr addr)
 
 uae_u32 REGPARAM2 custom_wget (uaecptr addr)
 {
+#ifdef FAST_COPPER
     sync_copper_with_cpu (current_hpos (), 1, addr);
+#else
+    sync_copper_with_cpu (current_hpos (), 1);
+#endif
     /* WinUAE code */
     if (addr & 1) {
        uae_u32 v;
@@ -4034,8 +4076,8 @@ void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
      case 0x084: COP2LCH (value); break;
      case 0x086: COP2LCL (value); break;
 
-     case 0x088: COPJMP1 (value); break;
-     case 0x08A: COPJMP2 (value); break;
+     case 0x088: COPJMP (1); break;
+     case 0x08A: COPJMP (2); break;
 
      case 0x08E: DIWSTRT (hpos, value); break;
      case 0x090: DIWSTOP (hpos, value); break;
@@ -4158,7 +4200,11 @@ void REGPARAM2 custom_wput (uaecptr addr, uae_u32 value)
 {
     int hpos = current_hpos ();
 
+#ifdef FAST_COPPER
     sync_copper_with_cpu (hpos, 1, addr);
+#else
+    sync_copper_with_cpu (hpos, 1);
+#endif
     custom_wput_1 (hpos, addr, value);
 }
 

@@ -11,7 +11,6 @@
 
 #define UNROLL_LOOPS
 #define UNROLL_AUDIO_HANDLER
-#define UNROLL_AHI_HANDLER
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -32,6 +31,7 @@
 #include "debug_uae4all.h"
 #include "menu_config.h"
 
+#define MAX_EV ~0ul
 #define maxhpos MAXHPOS
 
 struct audio_channel_data audio_channel[4] UAE4ALL_ALIGN;
@@ -69,26 +69,6 @@ typedef uae_s8 sample8_t;
 } \
       
 
-/*
-#define SAMPLE_HANDLER \
-	{ \
-		register uae_u32 d0 = audio_channel_current_sample[0]; \
-		register uae_u32 d1 = audio_channel_current_sample[1]; \
-		register uae_u32 d2 = audio_channel_current_sample[2]; \
-		register uae_u32 d3 = audio_channel_current_sample[3]; \
-		d0 *= audio_channel_vol[0]; \
-		d1 *= audio_channel_vol[1]; \
-		d2 *= audio_channel_vol[2]; \
-		d3 *= audio_channel_vol[3]; \
-		d0 &= audio_channel_adk_mask[0]; \
-		d1 &= audio_channel_adk_mask[1]; \
-		d2 &= audio_channel_adk_mask[2]; \
-		d3 &= audio_channel_adk_mask[3]; \
-	    	PUT_SOUND_WORD (d0+d1+d2+d3) \
-    		CHECK_SOUND_BUFFERS(); \
-	} \
-*/
-
 #define SAMPLE_HANDLER \
 	{ \
 		register uae_u32 d0 = audio_channel_current_sample[0]; \
@@ -123,7 +103,7 @@ typedef uae_s8 sample8_t;
 void schedule_audio (void)
 {
 #ifdef UNROLL_LOOPS
-    unsigned long best = ~0ul;
+    unsigned long best = MAX_EV;
     struct audio_channel_data *cdp;
     eventtab[ev_audio].active = 0;
     eventtab[ev_audio].oldcycles = get_cycles ();
@@ -133,12 +113,12 @@ void schedule_audio (void)
     SCHEDULE_AUDIO(3)
     eventtab[ev_audio].evtime = get_cycles () + best;
 #else
-    unsigned long best = ~0ul;
+    unsigned long best = MAX_EV;
     int i;
 
     eventtab[ev_audio].active = 0;
     eventtab[ev_audio].oldcycles = get_cycles ();
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < 4; i++) {
 	struct audio_channel_data *cdp;
     	SCHEDULE_AUDIO(i)
     }
@@ -398,114 +378,6 @@ static __inline__ void audio_handler (int nr)
 #endif
 
 
-#ifdef UNROLL_AHI_HANDLER
-
-#define AHI_HANDLER_CASE_1(NR) \
-	struct audio_channel_data *cdp = &audio_channel[NR]; \
-	audio_channel_evtime[NR] = cdp->per; \
-	cdp->intreq2 = 0; \
-	audio_channel_state[NR] = 2; \
-	if (cdp->wlen != 1) \
-	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF; \
-	cdp->dat = CHIPMEM_WGET_CUSTOM (cdp->pt); \
-	cdp->pt += 2; 
-
-#define AHI_HANDLER_CASE_2_0(NR) \
-	struct audio_channel_data *cdp = &audio_channel[NR]; \
-	if (cdp->intreq2) \
-	    INTREQ (0x8080); \
-	cdp->intreq2 = 0; \
-	audio_channel_evtime[NR] = cdp->per; \
-	cdp->dat = CHIPMEM_WGET_CUSTOM (cdp->pt); \
-	cdp->pt += 2; \
-	if (cdp->wlen == 1) { \
-	    cdp->pt = cdp->lc; \
-	    cdp->wlen = cdp->len; \
-	    cdp->intreq2 = 1; \
-	} else \
-	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF; 
-
-#define AHI_HANDLER_CASE_2_1(NR) \
-	struct audio_channel_data *cdp = &audio_channel[NR]; \
-	cdp->intreq2 = 0; \
-	audio_channel_evtime[NR] = cdp->per; \
-	cdp->dat = CHIPMEM_WGET_CUSTOM (cdp->pt); \
-	cdp->pt += 2; \
-	if (cdp->wlen == 1) { \
-	    cdp->pt = cdp->lc; \
-	    cdp->wlen = cdp->len; \
-	    cdp->intreq2 = 1; \
-	} else \
-	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF; 
-
-#define AHI_HANDLER_OTHER(NR) \
-	struct audio_channel_data *cdp = &audio_channel[NR]; \
-	audio_channel_state[NR] = 0;
-
-
-static void ahi4_handler_case_1(void) { AHI_HANDLER_CASE_1(4) }
-static void ahi5_handler_case_1(void) { AHI_HANDLER_CASE_1(5) }
-static void ahi4_handler_case_2(void) { AHI_HANDLER_CASE_2_0(4) }
-static void ahi5_handler_case_2(void) { AHI_HANDLER_CASE_2_1(5) }
-static void ahi4_handler_other(void) { AHI_HANDLER_OTHER(4) }
-static void ahi5_handler_other(void) { AHI_HANDLER_OTHER(5) }
-
-static audio_handler_func ahi4_table[8] UAE4ALL_ALIGN = {
-	audio_handler_dummy, ahi4_handler_case_1, ahi4_handler_case_2, ahi4_handler_other,
-	ahi4_handler_other, ahi4_handler_other, ahi4_handler_other, ahi4_handler_other
-};
-static audio_handler_func ahi5_table[8] UAE4ALL_ALIGN = {
-	audio_handler_dummy, ahi5_handler_case_1, ahi5_handler_case_2, ahi5_handler_other,
-	ahi5_handler_other, ahi5_handler_other, ahi5_handler_other, ahi5_handler_other
-};
-
-#define ahi_handler_4() ahi4_table[audio_channel_state[4]]()
-#define ahi_handler_5() ahi5_table[audio_channel_state[5]]()
-
-#else
-
-#define ahi_handler_4() ahi_handler(4)
-#define ahi_handler_5() ahi_handler(5)
-
-static __inline__ void ahi_handler (int nr)
-{
-    struct audio_channel_data *cdp = audio_channel + nr;
-    switch (audio_channel_state[nr]) {
-    case 0:
-	write_log ("Bug in sound code\n");
-	break;
-    case 1:
-	audio_channel_evtime[nr] = cdp->per;
-	cdp->intreq2 = 0;
-	audio_channel_state[nr] = 2;
-	if (cdp->wlen != 1)
-	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF;
-	cdp->dat = CHIPMEM_WGET_CUSTOM (cdp->pt);
-	cdp->pt += 2;
-	break;
-    case 2:
-	if (nr == 4 && cdp->intreq2)
-	    INTREQ (0x8080);
-	cdp->intreq2 = 0;
-	audio_channel_evtime[nr] = cdp->per;
-	cdp->dat = CHIPMEM_WGET_CUSTOM (cdp->pt);
-	cdp->pt += 2;
-	if (cdp->wlen == 1) {
-	    cdp->pt = cdp->lc;
-	    cdp->wlen = cdp->len;
-	    cdp->intreq2 = 1;
-	} else
-	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF;
-	break;
-    default:
-	audio_channel_state[nr] = 0;
-	break;
-    }
-}
-
-#endif
-
-
 void aud0_handler(void) {
 	audio_handler_0();
 }
@@ -694,7 +566,7 @@ void audio_evhandler (void)
 		schedule_audio ();
 	}
 	else
-		eventtab[ev_audio].evtime = get_cycles () + (~0ul);
+		eventtab[ev_audio].evtime = get_cycles () + (MAX_EV);
 }
 
 void AUDxDAT (int nr, uae_u16 v)

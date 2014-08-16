@@ -23,7 +23,6 @@
 #include "m68k/m68k_intrf.h"
 #include "blitter.h"
 #include "blit.h"
-#include "menu_config.h"
 
 #ifdef USE_BLITTER_EXTRA_INLINE
 #define _INLINE_ __inline__
@@ -45,11 +44,12 @@ static __inline__ void setnasty(void)
 
 uae_u16 bltcon0, bltcon1;
 uae_u32 bltapt, bltbpt, bltcpt, bltdpt;
+uae_u32 preva = 0, prevb = 0;
 
 int blinea_shift, blitsign;
 static uae_u16 blinea, blineb;
 static int blitline, blitfc, blitfill, blitife, blitsing, blitdesc;
-static int blitonedot, blitlinepixel;
+static int blitonedot;
 static int blit_ch;
 
 struct bltinfo blt_info;
@@ -68,8 +68,18 @@ static int blit_last_cycle, blit_dmacount, blit_dmacount2;
 static int blit_nod;
 static const uae_u8 *blit_diag;
 static int ddat1use;
-static int blit_slowdown;
-static int immediate_blits;
+
+// New vars for blitter mode "partial"
+int blitter_in_partial_mode = 0;        // Flag for new mode active
+static int blit_total_required_cycles;  // Estimated number of cycles of entire blitter op
+static int blit_cycles_per_op;          // Number of cycles per blitter op
+static int blit_cycles_per_vsize;       // Number of cycles per line
+static int blit_vblitsize_done;         // Number of vblitsize-lines are done
+static unsigned long blit_cycle_at_start;
+static unsigned long blit_init_cycles;  // Cycles required for blitter initialisation
+static unsigned long blit_cycle_current;
+static unsigned long blit_cycle_entered_wait;    // At this cycle, blitter entered in wait-state because of disabled DMA
+
 
 /*
 Blitter Idle Cycle:
@@ -224,7 +234,6 @@ static _INLINE_ void blitter_dofast(void)
 	(*blitfunc_dofast[mt])(bltadatptr, bltbdatptr, bltcdatptr, bltddatptr, &blt_info);
     else {
 	uae_u32 blitbhold = blt_info.bltbhold;
-	uae_u32 preva = 0, prevb = 0;
 	uaecptr dstp = 0;
 	uae_u32 *blit_masktable_p = blit_masktable + BLITTER_MAX_WORDS - blt_info.hblitsize;
 
@@ -254,7 +263,7 @@ static _INLINE_ void blitter_dofast(void)
 		}
 		if (dstp) 
 		  CHIPMEM_WPUT_CUSTOM (dstp, blt_info.bltddat);
-		blt_info.bltddat = blit_func (blitahold, blitbhold, blt_info.bltcdat, mt) & 0xFFFF;
+		blt_info.bltddat = blit_func (blitahold, blitbhold, blt_info.bltcdat, mt);
 		if (blitfill) {
 		    uae_u16 d = blt_info.bltddat;
 		    int ifemode = blitife ? 2 : 0;
@@ -314,7 +323,6 @@ static _INLINE_ void blitter_dofast_desc(void)
 		(*blitfunc_dofast_desc[mt])(bltadatptr, bltbdatptr, bltcdatptr, bltddatptr, &blt_info);
     else {
 	uae_u32 blitbhold = blt_info.bltbhold;
-	uae_u32 preva = 0, prevb = 0;
 	uaecptr dstp = 0;
 	uae_u32 *blit_masktable_p = blit_masktable + BLITTER_MAX_WORDS - blt_info.hblitsize;
 
@@ -345,7 +353,7 @@ static _INLINE_ void blitter_dofast_desc(void)
 				}
 				if (dstp)
 		  CHIPMEM_WPUT_CUSTOM (dstp, blt_info.bltddat);
-		blt_info.bltddat = blit_func (blitahold, blitbhold, blt_info.bltcdat, mt) & 0xFFFF;
+		blt_info.bltddat = blit_func (blitahold, blitbhold, blt_info.bltcdat, mt);
 		if (blitfill) {
 		    uae_u16 d = blt_info.bltddat;
 		    int ifemode = blitife ? 2 : 0;
@@ -379,11 +387,8 @@ static _INLINE_ void blitter_dofast_desc(void)
 static __inline__ void blitter_read(void)
 {
 	if (bltcon0 & 0x200) {
-		if (!dmaen (DMA_BLITTER))
-			return;
       blt_info.bltcdat = CHIPMEM_WGET_CUSTOM(bltcpt);
 	}
-	bltstate = BLT_work;
 }
 
 static __inline__ void blitter_write(void)
@@ -392,11 +397,8 @@ static __inline__ void blitter_write(void)
 		blt_info.blitzero = 0;
 	/* D-channel state has no effect on linedraw, but C must be enabled or nothing is drawn! */
 	if (bltcon0 & 0x200) {
-		if (!dmaen (DMA_BLITTER))
-			return;
       CHIPMEM_WPUT_CUSTOM(bltdpt, blt_info.bltddat);
 	}
-	bltstate = BLT_next;
 }
 
 static __inline__ void blitter_line_incx(void)
@@ -427,14 +429,13 @@ static __inline__ void blitter_line_incy(void)
     blitonedot = 0;
 }
 
-static _INLINE_ void blitter_line(void)
+static _INLINE_ int blitter_line(void)
 {
 	uae_u16 blitahold = (blinea & blt_info.bltafwm) >> blinea_shift;
-	uae_u16 blitchold = blt_info.bltcdat;
 
 	blt_info.bltbhold = (blineb & 1) ? 0xFFFF : 0;
-	blitlinepixel = !blitsing || (blitsing && !blitonedot);
-	blt_info.bltddat = blit_func (blitahold, blt_info.bltbhold, blitchold, bltcon0 & 0xFF);
+	int blitlinepixel = !blitsing || (blitsing && !blitonedot);
+	blt_info.bltddat = blit_func (blitahold, blt_info.bltbhold, blt_info.bltcdat, bltcon0 & 0xFF);
 	blitonedot++;
 
 	if (bltcon0 & 0x800) {
@@ -470,14 +471,13 @@ static _INLINE_ void blitter_line(void)
 	}
 
 	blitsign = 0 > (uae_s16)bltapt;
-	bltstate = BLT_write;
+	return blitlinepixel;
 }
 
 static __inline__ void blitter_nxline(void)
 {
 	blineb = (blineb << 1) | (blineb >> 15);
 	blt_info.vblitsize--;
-	bltstate = BLT_read;
 }
 
 static __inline__ void blitter_done ()
@@ -498,16 +498,15 @@ static _INLINE_ void actually_do_blit(void)
 			if (ddat1use)
 				bltdpt = bltcpt;
 			ddat1use = 1;
-			blitter_line ();
-			blitter_nxline ();
-			if (blitlinepixel) {
+			if (blitter_line ()) {
 				blitter_write ();
-				blitlinepixel = 0;
 			}
+			blitter_nxline ();
 			if (blt_info.vblitsize == 0)
 				bltstate = BLT_done;
 		} while (bltstate != BLT_done);
-		bltdpt = bltcpt;
+		if(!blitter_in_partial_mode)
+		  bltdpt = bltcpt;
 	} else {
 		if (blitdesc)
 			blitter_dofast_desc ();
@@ -515,6 +514,12 @@ static _INLINE_ void actually_do_blit(void)
 			blitter_dofast ();
 		bltstate = BLT_done;
 	}
+}
+
+static __inline__ void blitter_doit(void)
+{
+  actually_do_blit ();
+  blitter_done();
 }
 
 void blitter_handler(void)
@@ -526,7 +531,7 @@ void blitter_handler(void)
 	eventtab[ev_blitter].oldcycles = get_cycles ();
 	eventtab[ev_blitter].evtime = 10 * CYCLE_UNIT + get_cycles (); /* wait a little */
 		blitter_stuck++;
-		if (blitter_stuck < 20000 || mainMenu_immediate_blits)
+		if (blitter_stuck < 20000 || !currprefs.immediate_blits)
 			return; /* gotta come back later. */
 		/* "free" blitter in immediate mode if it has been "stuck" ~3 frames
 		* fixes some JIT game incompatibilities
@@ -534,17 +539,22 @@ void blitter_handler(void)
 	}
 	blitter_stuck = 0;
 
-// blitter_slowdown doesn't work at the moment
-	if (blit_slowdown > 0 && !mainMenu_immediate_blits) {
-	eventtab[ev_blitter].active = 1;
-	eventtab[ev_blitter].oldcycles = get_cycles ();
-	eventtab[ev_blitter].evtime = blit_slowdown * CYCLE_UNIT + get_cycles (); /* wait a little */
-		blit_slowdown = -1;
-		return;
-	}
+  if(blitter_in_partial_mode)
+  {
+    blitter_do_partial(1);
+    return;
+  }
 
-	actually_do_blit ();
-	blitter_done ();
+// blitter_slowdown doesn't work at the moment
+//	if (blit_slowdown > 0 && !currprefs.immediate_blits) {
+//	eventtab[ev_blitter].active = 1;
+//	eventtab[ev_blitter].oldcycles = get_cycles ();
+//	eventtab[ev_blitter].evtime = blit_slowdown * CYCLE_UNIT + get_cycles (); /* wait a little */
+//		blit_slowdown = -1;
+//		return;
+//	}
+
+  blitter_doit();
 }
 
 static __inline__ void blit_bltset (int con)
@@ -598,6 +608,8 @@ static __inline__ void blit_bltset (int con)
 static _INLINE_ void blitter_start_init(void)
 {
 	blt_info.blitzero = 1;
+	preva = 0;
+	prevb = 0;
 
 	blit_bltset (1 | 2);
 	ddat1use = 0;
@@ -606,7 +618,6 @@ static _INLINE_ void blitter_start_init(void)
 		blinea = blt_info.bltadat;
 		blineb = (blt_info.bltbdat >> blt_info.blitbshift) | (blt_info.bltbdat << (16 - blt_info.blitbshift));
 		blitonedot = 0;
-		blitlinepixel = 0;
 		blitsing = bltcon1 & 0x2;
 	}
 }
@@ -614,9 +625,8 @@ static _INLINE_ void blitter_start_init(void)
 void do_blitter(void)
 {
 	int cycles;
-
+  
 	bltstate = BLT_done;
-	immediate_blits = mainMenu_immediate_blits;
 
 	blit_firstline_cycles = blit_first_cycle = get_cycles ();
 	blit_last_cycle = 0;
@@ -624,13 +634,41 @@ void do_blitter(void)
 
 	blitter_start_init ();
 
-	if (blitline) {
-		cycles = blt_info.vblitsize;
-	} else {
-		cycles = blt_info.vblitsize * blt_info.hblitsize;
-		blit_firstline_cycles = blit_first_cycle + (blit_diag[0] * blt_info.hblitsize) * CYCLE_UNIT;
-	}
-
+  if(blitter_in_partial_mode)
+  {
+    blit_cycle_entered_wait = 0;
+    if(blitline)
+    {
+      blit_cycles_per_op = blit_dmacount2 + (blit_nod ? 0 : 1);
+      //blit_cycles_per_op = blit_diag[0];
+      blit_cycles_per_vsize = blit_cycles_per_op;
+      blit_init_cycles = 2;   // HRM says nothing about how much cycles required for blitter initialisation
+    }
+    else
+    {
+      blit_cycles_per_op = blit_dmacount2 + (blit_nod ? 0 : 1);
+      //blit_cycles_per_op = blit_diag[0];
+      blit_cycles_per_vsize = blit_cycles_per_op * blt_info.hblitsize;
+      blit_init_cycles = 2;   // HRM says nothing about how much cycles required for blitter initialisation
+      // Used from code below so that maybe_blit behaves same as in normal mode
+      blit_firstline_cycles = blit_first_cycle + (blit_diag[0] * blt_info.hblitsize) * CYCLE_UNIT;
+    }
+    blit_total_required_cycles = blit_cycles_per_vsize * blt_info.vblitsize;
+    blit_cyclecounter = blit_init_cycles + blit_total_required_cycles;
+    blit_init_cycles *= CYCLE_UNIT;
+    blit_vblitsize_done = 0;
+  }
+  else
+  {        
+  	if (blitline) {
+  		cycles = blt_info.vblitsize;
+  	} else {
+  		cycles = blt_info.vblitsize * blt_info.hblitsize;
+  		blit_firstline_cycles = blit_first_cycle + (blit_diag[0] * blt_info.hblitsize) * CYCLE_UNIT;
+  	}
+	  blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
+  }
+  
 	bltstate = BLT_init;
 // blitter_slowdown doesn't work at the moment
 //	blit_slowdown = 0;
@@ -640,31 +678,137 @@ void do_blitter(void)
     else
     	unset_special (SPCFLAG_BLTNASTY);
 
-	if (dmaen (DMA_BLITTER))
-		bltstate = BLT_work;
+  if(!dmaen (DMA_BLITTER))
+    return;
+    
+  bltstate = BLT_work;
 
-	if (blt_info.vblitsize == 0 || (blitline && blt_info.hblitsize != 2)) {
-		if (dmaen (DMA_BLITTER))
-			blitter_done ();
+	if (blitline && blt_info.hblitsize != 2) {
+		blitter_done ();
 		return;
 	}
 
-	if (mainMenu_immediate_blits)
-		cycles = 1;
-	
-	blit_cyclecounter = cycles * (blit_dmacount2 + (blit_nod ? 0 : 1)); 
-    eventtab[ev_blitter].active = 1;
-    eventtab[ev_blitter].oldcycles = get_cycles ();
-    eventtab[ev_blitter].evtime = blit_cyclecounter * CYCLE_UNIT + get_cycles ();
-    events_schedule();
+	if (currprefs.immediate_blits) {
+		blitter_doit ();
+		return;
+	}
+
+  if(blitter_in_partial_mode)
+  {
+    blit_cycle_at_start = get_cycles();
+    blit_cycle_current = blit_cycle_at_start;
+  }
+
+  eventtab[ev_blitter].active = 1;
+  eventtab[ev_blitter].oldcycles = get_cycles ();
+  eventtab[ev_blitter].evtime = blit_cyclecounter * CYCLE_UNIT + get_cycles ();
+  events_schedule();
 }
 
+void blitter_dma_disabled(void)
+{
+  if(bltstate != BLT_work || !blitter_in_partial_mode)
+    return;
+  // execute blitter till current cycle
+  blitter_do_partial(0);
+  if(bltstate == BLT_work)
+  {
+    // We still have something to do...
+    bltstate = BLT_waitDMA;
+    blit_cycle_entered_wait = get_cycles();
+    eventtab[ev_blitter].active = 0;
+    events_schedule();
+  }
+}
+
+void blitter_dma_enabled(void)
+{
+  if(bltstate != BLT_waitDMA || !blitter_in_partial_mode)
+    return;
+    
+  bltstate = BLT_work;
+  // Add cycles we waited to current cycles...
+  unsigned long cycles_waited = get_cycles() - blit_cycle_entered_wait;
+  blit_cycle_current += cycles_waited;
+  eventtab[ev_blitter].active = 1;
+  eventtab[ev_blitter].evtime += cycles_waited;
+  events_schedule();
+  blit_cycle_entered_wait = 0;
+}
+
+void blitter_do_partial(int do_all)
+{
+  if(bltstate != BLT_work && bltstate != BLT_waitDMA)
+    return;
+
+  if (!dmaen (DMA_BLITTER) && !do_all)
+    return;
+  
+  unsigned long curr_cpu_cycles = get_cycles();
+  if((curr_cpu_cycles < blit_cycle_current + blit_init_cycles) && !do_all)
+    return; // Blitter not finished with initialisation
+  if(blit_init_cycles > 0)
+  {
+    blit_cycle_current += blit_init_cycles;
+    blit_init_cycles = 0;
+  }
+  
+  int num_lines = 0;
+  while(curr_cpu_cycles > blit_cycle_current || do_all)
+  {
+    num_lines++;
+    blit_cycle_current += blit_cycles_per_vsize * CYCLE_UNIT;
+    if(num_lines + blit_vblitsize_done >= blt_info.vblitsize)
+      break;
+  }
+
+  if(num_lines > 0)
+  {
+    int tmp_vblitsize = blt_info.vblitsize;
+    blt_info.vblitsize = num_lines;
+    actually_do_blit();		
+    blt_info.vblitsize = tmp_vblitsize;
+    blit_vblitsize_done += num_lines;
+    if(blit_vblitsize_done >= blt_info.vblitsize)
+    {
+      if(blitline)
+        bltdpt = bltcpt;
+      blitter_done();
+    }
+    else
+      bltstate = BLT_work; // still not finished
+  }
+}
+
+// Called only from custom.cpp if blitter DMA is now enabled
 void blitter_check_start (void)
 {
 	if (bltstate != BLT_init)
 		return;
-	blitter_start_init ();
+
+  // do the same as in do_blitter after dmaen check
 	bltstate = BLT_work;
+
+	if (blitline && blt_info.hblitsize != 2) {
+		blitter_done ();
+		return;
+	}
+
+	if (currprefs.immediate_blits) {
+		blitter_doit ();
+		return;
+	}
+	
+  if(blitter_in_partial_mode)
+  {
+    blit_cycle_at_start = get_cycles();
+    blit_cycle_current = blit_cycle_at_start;
+  }
+
+  eventtab[ev_blitter].active = 1;
+  eventtab[ev_blitter].oldcycles = get_cycles ();
+  eventtab[ev_blitter].evtime = blit_cyclecounter * CYCLE_UNIT + get_cycles ();
+  events_schedule();
 }
 
 void maybe_blit (int modulo)
@@ -674,6 +818,7 @@ void maybe_blit (int modulo)
 
     if (modulo && get_cycles() < blit_firstline_cycles)
 	return;
+
     blitter_handler ();
 }
 

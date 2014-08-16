@@ -239,11 +239,13 @@ namespace sdl
               break;
               
             case SDLK_LEFT:
-              widgets::HandleNavigation(DIRECTION_LEFT);
+              if(widgets::HandleNavigation(DIRECTION_LEFT))
+                continue; // Don't change value when enter Slider -> dont't send event to control
               break;
               
             case SDLK_RIGHT:
-              widgets::HandleNavigation(DIRECTION_RIGHT);
+              if(widgets::HandleNavigation(DIRECTION_RIGHT))
+                continue; // Don't change value when enter Slider -> dont't send event to control
               break;
 
             case SDLK_PAGEDOWN:
@@ -562,7 +564,7 @@ namespace widgets
     		mainMenu_fastMemory = 0;
     		kickstart = 1;
     		mainMenu_CPU_model = 0;
-    		mainMenu_chipset = 0;
+    		mainMenu_chipset = (mainMenu_chipset & 0xff00) | 0; // Leave immediate_blit flag untouched
     		mainMenu_CPU_speed = 0;
     		UpdateCPUModelSettings();
     		UpdateChipsetSettings();
@@ -583,7 +585,7 @@ namespace widgets
     		mainMenu_fastMemory = 4;
     		kickstart = 3;
     		mainMenu_CPU_model = 1;
-    		mainMenu_chipset = 2;
+    		mainMenu_chipset = (mainMenu_chipset & 0xff00) | 2; // Leave immediate_blit flag untouched
     		mainMenu_CPU_speed = 1;
     		UpdateCPUModelSettings();
     		UpdateChipsetSettings();

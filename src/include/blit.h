@@ -1,4 +1,4 @@
-static __inline__ uae_u32 blit_func(uae_u32 srca, uae_u32 srcb, uae_u32 srcc, uae_u8 mt)
+static __inline__ uae_u32 blit_func(const uae_u32 srca, const uae_u32 srcb, const uae_u32 srcc, const uae_u8 mt)
 {
 switch(mt){
 case 0x0:

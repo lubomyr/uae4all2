@@ -20,14 +20,13 @@ NavigationMap navMap[] =
   // Tab Main
   { "68000", "ChipMem", "1.2", "tabbedArea", "68020" },
   { "68020", "ChipMem", "1.3", "68000", "OCS" },
-
   { "OCS", "FastMem", "3.1", "68020", "ECS" },
 #if defined(PANDORA) && !defined(WIN32)
-  { "ECS", "FastMem", "PandSpeed", "OCS", "AGA" },
-  { "AGA", "FastMem", "ImmediateBlits", "ECS", "Reset" },
+  { "ECS", "PandSpeed", "AROS", "OCS", "AGA" },
+  { "AGA", "PandSpeed", "BlitterMode", "ECS", "Reset" },
 #else
   { "ECS", "FastMem", "AROS", "OCS", "AGA" },
-  { "AGA", "FastMem", "ImmediateBlits", "ECS", "Reset" },
+  { "AGA", "FastMem", "AROS", "ECS", "Reset" },
 #endif
 
   { "1.2", "68000", "7MHz", "tabbedArea", "1.3" },
@@ -35,35 +34,33 @@ NavigationMap navMap[] =
   { "2.0", "OCS", "28MHz", "1.3", "3.1" },
   { "3.1", "OCS", "28MHz", "2.0", "AROS" },
 #if defined(PANDORA) && !defined(WIN32)
-  { "AROS", "ECS", "28MHz", "3.1", "ImmediateBlits" },
+  { "AROS", "ECS", "PandSpeed", "3.1", "BlitterMode" },
 #endif
 #if defined(WIN32) || defined(ANDROIDSDL)
-  { "AROS", "ECS", "112MHz", "3.1", "ImmediateBlits" },
-#endif
-
-#if defined(PANDORA) && !defined(WIN32)
-  { "ImmediateBlits", "AGA", "28MHz", "AROS", "PandSpeed" },
-#endif
-#if defined(WIN32) || defined(ANDROIDSDL)
-  { "ImmediateBlits", "AGA", "112MHz", "AROS", "Reset" },
+  { "AROS", "ECS", "112MHz", "3.1", "Reset" },
 #endif
 
   { "7MHz", "1.2", "ChipMem", "tabbedArea", "14MHz" },
   { "14MHz", "1.3", "ChipMem", "7MHz", "28MHz" },
 #if defined(PANDORA) && !defined(WIN32)
-  { "28MHz", "2.0", "SlowMem", "14MHz", "PandSpeed" },
-#endif
-#if defined(WIN32) || defined(ANDROIDSDL)
+  { "28MHz", "2.0", "SlowMem", "14MHz", "BlitterMode" },
+  { "BlitterMode", "AGA", "PandSpeed", "---", "---" },
+#else
   { "28MHz", "2.0", "SlowMem", "14MHz", "56MHz" },
   { "56MHz", "3.1", "FastMem", "28MHz", "112MHz" },
   { "112MHz", "AROS", "FastMem", "56MHz", "Reset" },
+  { "BlitterMode", "AGA", "FastMem", "---", "---" },
 #endif
 
-  { "PandSpeed", "AGA", "FastMem", "---", "---" },
+  { "PandSpeed", "AROS", "ECS", "---", "---" },
 
   { "ChipMem", "---", "---", "tabbedArea", "SlowMem" },
   { "SlowMem", "---", "---", "ChipMem", "FastMem" },
+#if defined(PANDORA) && !defined(WIN32)
+  { "FastMem", "---", "---", "SlowMem", "PandSpeed" },
+#else
   { "FastMem", "---", "---", "SlowMem", "Save Config" },
+#endif
 
   // Tab Floppy Drive
   { "DF0", "Drives1", "ejectDF0", "tabbedArea", "DF1" },
@@ -153,7 +150,13 @@ NavigationMap navMap[] =
   { "Port0", "ControlCfg2", "Light", "tabbedArea", "Port1" },
   { "Port1", "ControlCfg4", "Medium", "Port0", "Both" },
 
+#if defined(WIN32) || defined(ANDROIDSDL)
   { "Both", "ControlCfg4", "Heavy", "Port1", "Reset" },
+#else
+  { "Both", "ControlCfg4", "Heavy", "Port1", "StatusOn" },
+  { "StatusOn", "ControlCfg4", "Heavy", "Both", "StatusOff" },
+  { "StatusOff", "ControlCfg4", "Heavy", "StatusOn", "Reset" },
+#endif
 
   { "Light", "Port0", "Mouse.25", "tabbedArea", "Medium" },
   { "Medium", "Port1", "Mouse.5", "Light", "Heavy" },
@@ -162,16 +165,27 @@ NavigationMap navMap[] =
   { "Mouse.25", "Light", "TapNormal", "tabbedArea", "Mouse.5" },
   { "Mouse.5", "Medium", "TapShort", "Mouse.25", "Mouse1x" },
   { "Mouse1x", "Heavy", "TapNo", "Mouse.5", "Mouse2x" },
+#if defined(WIN32) || defined(ANDROIDSDL)
   { "Mouse2x", "Heavy", "StatusLine", "Mouse1x", "Mouse4x" },
   { "Mouse4x", "Heavy", "StatusLine", "Mouse2x", "StylusOffset" },
+#else
+  { "Mouse2x", "Heavy", "TapNo", "Mouse1x", "Mouse4x" },
+  { "Mouse4x", "Heavy", "TapNo", "Mouse2x", "StylusOffset" },
+#endif
 
   { "TapNormal", "Mouse.25", "ControlCfg1", "tabbedArea", "TapShort" },
   { "TapShort", "Mouse.5", "ControlCfg3", "TapNormal", "TapNo" },
+#if defined(WIN32) || defined(ANDROIDSDL)
   { "TapNo", "Mouse1x", "ControlCfg3", "TapShort", "StatusLine" },
   
   { "StatusLine", "Mouse4x", "ControlCfg3", "TapNo", "StylusOffset" },
 
   { "StylusOffset", "Mouse4x", "Mouse4x", "---", "---" },
+#else
+  { "TapNo", "Mouse1x", "ControlCfg3", "TapShort", "StylusOffset" },
+
+  { "StylusOffset", "StatusOff", "StatusOff", "---", "---" },
+#endif
 
   // Tab Custom Control
   { "CustomCtrlOff", "CtrlUp", "CustomCtrlOn", "tabbedArea", "DPadCustom" },
