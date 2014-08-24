@@ -26,7 +26,7 @@ NavigationMap navMap[] =
   { "AGA", "PandSpeed", "BlitterMode", "ECS", "Reset" },
 #else
   { "ECS", "FastMem", "AROS", "OCS", "AGA" },
-  { "AGA", "FastMem", "AROS", "ECS", "Reset" },
+  { "AGA", "FastMem", "BM_normal", "ECS", "BM_normal" },
 #endif
 
   { "1.2", "68000", "7MHz", "tabbedArea", "1.3" },
@@ -37,7 +37,7 @@ NavigationMap navMap[] =
   { "AROS", "ECS", "PandSpeed", "3.1", "BlitterMode" },
 #endif
 #if defined(WIN32) || defined(ANDROIDSDL)
-  { "AROS", "ECS", "112MHz", "3.1", "Reset" },
+  { "AROS", "ECS", "112MHz", "3.1", "BM_normal" },
 #endif
 
   { "7MHz", "1.2", "ChipMem", "tabbedArea", "14MHz" },
@@ -48,8 +48,10 @@ NavigationMap navMap[] =
 #else
   { "28MHz", "2.0", "SlowMem", "14MHz", "56MHz" },
   { "56MHz", "3.1", "FastMem", "28MHz", "112MHz" },
-  { "112MHz", "AROS", "FastMem", "56MHz", "Reset" },
-  { "BlitterMode", "AGA", "FastMem", "---", "---" },
+  { "112MHz", "AROS", "FastMem", "56MHz", "BM_immediate" },
+  { "BM_normal", "AGA", "BM_immediate", "AROS", "Reset" },
+  { "BM_immediate", "BM_normal", "BM_improved", "112MHz", "Reset" },
+  { "BM_improved", "BM_immediate", "FastMem", "112MHz", "Reset" },
 #endif
 
   { "PandSpeed", "AROS", "ECS", "---", "---" },

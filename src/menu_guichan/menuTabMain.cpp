@@ -51,9 +51,16 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_chipsetocs;
   gcn::UaeRadioButton* radioButton_chipsetecs;
   gcn::UaeRadioButton* radioButton_chipsetaga;
+#if !(defined (ANDROIDSDL) || defined (WIN32))
   gcn::Container* backgrd_blittermode;
   gcn::Label* label_blittermode;
   gcn::UaeDropDown* dropDown_blittermode;
+#else
+  gcn::Window *group_blitmode;
+  gcn::UaeRadioButton* radioButton_bm_normal;
+  gcn::UaeRadioButton* radioButton_bm_immediate;
+  gcn::UaeRadioButton* radioButton_bm_improved;  
+#endif
   gcn::Window *group_kickstart;
   gcn::UaeRadioButton* radioButton_kick12;
   gcn::UaeRadioButton* radioButton_kick13;
@@ -118,7 +125,7 @@ namespace widgets
   PandSpeedListModel pandSpeedList;  
 #endif
 
-
+#if !(defined (ANDROIDSDL) || defined (WIN32))
   class BlitterModeListModel : public gcn::ListModel
   {
     private:
@@ -143,7 +150,7 @@ namespace widgets
       }
   };
   BlitterModeListModel blitterModeList;  
-
+#endif
 
   class CPUButtonActionListener : public gcn::ActionListener
   {
@@ -182,6 +189,7 @@ namespace widgets
     public:
       void action(const gcn::ActionEvent& actionEvent)
       {
+#if !(defined (ANDROIDSDL) || defined (WIN32))
   	    if (actionEvent.getSource() == dropDown_blittermode)
 	      {
   	      switch(dropDown_blittermode->getSelected())
@@ -196,8 +204,15 @@ namespace widgets
   	          mainMenu_chipset = (mainMenu_chipset & 0xff);
   	          break;
   	      }
-  	      UpdateChipsetSettings();
-  	    }
+#else
+  	    if (actionEvent.getSource() == radioButton_bm_immediate)
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff) | 0x100;
+    	else if (actionEvent.getSource() == radioButton_bm_improved)
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff) | 0x200;
+  	    else if (actionEvent.getSource() == radioButton_bm_normal)
+  	          mainMenu_chipset = (mainMenu_chipset & 0xff);
+#endif
+    	UpdateChipsetSettings();
       }
   };
   BlitterModeActionListener* blitterModeActionListener;
@@ -328,6 +343,7 @@ namespace widgets
     group_chipset->setBaseColor(baseCol);
 
     // Select Blitter mode
+#if !(defined (ANDROIDSDL) || defined (WIN32))
   	label_blittermode = new gcn::Label("Blitter mode");
   	label_blittermode->setPosition(4, 2);
   	backgrd_blittermode = new gcn::Container();
@@ -341,8 +357,33 @@ namespace widgets
   	dropDown_blittermode->setWidth(85);
     dropDown_blittermode->setBaseColor(baseCol);
     dropDown_blittermode->setId("BlitterMode");
+	blitterModeActionListener = new BlitterModeActionListener();
+	dropDown_blittermode->addActionListener(blitterModeActionListener);
+#else
+	radioButton_bm_normal = new gcn::UaeRadioButton("norm.", "radioblittergroup");
+  	radioButton_bm_normal->setPosition(5,10);
+  	radioButton_bm_normal->setId("BM_normal");
+	radioButton_bm_immediate = new gcn::UaeRadioButton("immed.", "radioblittergroup");
+  	radioButton_bm_immediate->setPosition(80,10);
+  	radioButton_bm_immediate->setId("BM_immediate");	
+	radioButton_bm_improved = new gcn::UaeRadioButton("improv.", "radioblittergroup");
+  	radioButton_bm_improved->setPosition(155,10);
+  	radioButton_bm_improved->setId("BM_improved");
+
     blitterModeActionListener = new BlitterModeActionListener();
-  	dropDown_blittermode->addActionListener(blitterModeActionListener);
+	radioButton_bm_normal->addActionListener(blitterModeActionListener);
+	radioButton_bm_immediate->addActionListener(blitterModeActionListener);
+	radioButton_bm_improved->addActionListener(blitterModeActionListener);
+	
+ 	group_blitmode = new gcn::Window("Blitter mode");
+   	group_blitmode->setPosition(105,210);
+  	group_blitmode->add(radioButton_bm_normal);
+  	group_blitmode->add(radioButton_bm_immediate);
+  	group_blitmode->add(radioButton_bm_improved);	
+  	group_blitmode->setMovable(false);
+  	group_blitmode->setSize(240,55);
+    group_blitmode->setBaseColor(baseCol);
+#endif
 
     // Select Kickstart
   	radioButton_kick12 = new gcn::UaeRadioButton("1.2", "radiokickgroup");
@@ -533,14 +574,18 @@ namespace widgets
 #endif
 
   	tab_main = new gcn::Container();
-	  tab_main->add(icon_winlogo);
-	  tab_main->add(group_cpu);
-	  tab_main->add(group_chipset);
+	tab_main->add(icon_winlogo);
+	tab_main->add(group_cpu);
+	tab_main->add(group_chipset);
+#if !(defined (ANDROIDSDL) || defined (WIN32))
     tab_main->add(backgrd_blittermode);
-  	tab_main->add(dropDown_blittermode);
-	  tab_main->add(group_kickstart);
-	  tab_main->add(group_cpuspeed);
-	  tab_main->add(window_memory);
+ 	tab_main->add(dropDown_blittermode);
+#else
+	tab_main->add(group_blitmode);
+#endif
+	tab_main->add(group_kickstart);
+	tab_main->add(group_cpuspeed);
+	tab_main->add(window_memory);
 #if defined(PANDORA) && !defined(WIN32)
     tab_main->add(backgrd_pandspeed);
   	tab_main->add(dropDown_pandspeed);
@@ -560,9 +605,16 @@ namespace widgets
     delete radioButton_chipsetocs;
     delete radioButton_chipsetecs;        
     delete radioButton_chipsetaga;
+#if !(defined (ANDROIDSDL) || defined (WIN32))
     delete backgrd_blittermode;
     delete label_blittermode;
     delete dropDown_blittermode;
+#else
+    delete group_blitmode;
+    delete radioButton_bm_normal;
+    delete radioButton_bm_immediate;
+    delete radioButton_bm_improved;
+#endif
     delete group_kickstart;
     delete radioButton_kick12;
     delete radioButton_kick13;
@@ -627,11 +679,11 @@ namespace widgets
 	    radioButton_chipsetaga->setSelected(true);
 
     if (mainMenu_chipset & 0x100)
-      dropDown_blittermode->setSelected(1);
+      radioButton_bm_immediate->setSelected(true);
     else if (mainMenu_chipset & 0x200)
-      dropDown_blittermode->setSelected(2);
+      radioButton_bm_improved->setSelected(true);
     else
-      dropDown_blittermode->setSelected(0);
+      radioButton_bm_normal->setSelected(true);
 
   	if (kickstart==0)
 	    radioButton_kick12->setSelected(true);
