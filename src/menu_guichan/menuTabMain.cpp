@@ -677,14 +677,21 @@ namespace widgets
 	    radioButton_chipsetecs->setSelected(true);
 	  else if ((mainMenu_chipset & 0xff) == 2)
 	    radioButton_chipsetaga->setSelected(true);
-
+#if !(defined (ANDROIDSDL) || defined (WIN32))
+    if (mainMenu_chipset & 0x100)
+      dropDown_blittermode->setSelected(1);
+    else if (mainMenu_chipset & 0x200)
+      dropDown_blittermode->setSelected(2);
+    else
+      dropDown_blittermode->setSelected(0);
+#else
     if (mainMenu_chipset & 0x100)
       radioButton_bm_immediate->setSelected(true);
     else if (mainMenu_chipset & 0x200)
       radioButton_bm_improved->setSelected(true);
     else
       radioButton_bm_normal->setSelected(true);
-
+#endif
   	if (kickstart==0)
 	    radioButton_kick12->setSelected(true);
 	  else if (kickstart==1)
