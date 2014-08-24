@@ -369,7 +369,11 @@ namespace widgets
 	radioButton_bm_improved = new gcn::UaeRadioButton("improv.", "radioblittergroup");
   	radioButton_bm_improved->setPosition(155,10);
   	radioButton_bm_improved->setId("BM_improved");
-
+#ifdef ANDROIDSDL
+	radioButton_bm_normal->setFont(font2);
+	radioButton_bm_immediate->setFont(font2);
+	radioButton_bm_improved->setFont(font2);
+#endif
     blitterModeActionListener = new BlitterModeActionListener();
 	radioButton_bm_normal->addActionListener(blitterModeActionListener);
 	radioButton_bm_immediate->addActionListener(blitterModeActionListener);
