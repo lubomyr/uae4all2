@@ -364,7 +364,7 @@ namespace widgets
   	radioButton_bm_normal->setPosition(5,10);
   	radioButton_bm_normal->setId("BM_normal");
 	radioButton_bm_immediate = new gcn::UaeRadioButton("immed.", "radioblittergroup");
-  	radioButton_bm_immediate->setPosition(80,10);
+  	radioButton_bm_immediate->setPosition(75,10);
   	radioButton_bm_immediate->setId("BM_immediate");	
 	radioButton_bm_improved = new gcn::UaeRadioButton("improv.", "radioblittergroup");
   	radioButton_bm_improved->setPosition(155,10);
