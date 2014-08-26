@@ -101,6 +101,11 @@ static int ncolors = 0;
 
 /* Keyboard and mouse */
 int uae4all_keystate[256];
+#ifdef PANDORA
+static int shiftWasPressed = 0;
+#define SIMULATE_SHIFT 0x200
+#define SIMULATE_RELEASED_SHIFT 0x400
+#endif
 
 void flush_block ()
 {
@@ -270,7 +275,8 @@ int graphics_init (void)
     buttonstate[0] = buttonstate[1] = buttonstate[2] = 0;
     for (i = 256; i--;)
 		uae4all_keystate[i] = 0;
-
+  shiftWasPressed = 0;
+  
     return 1;
 }
 
@@ -290,6 +296,57 @@ void graphics_leave (void)
  * between different keyboard languages. */
 static int kc_decode (SDL_keysym *prKeySym)
 {
+#ifdef PANDORA
+  // Special handling of Pandora keyboard:
+  // Some keys requires shift on Amiga, so we simulate shift...
+  switch (prKeySym->sym)
+  {
+    case SDLK_COLON:
+      return SIMULATE_SHIFT | AK_SEMICOLON;
+    case SDLK_QUESTION:
+      return SIMULATE_SHIFT | AK_SLASH;
+    case SDLK_HASH:
+      return SIMULATE_SHIFT | AK_3;
+    case SDLK_DOLLAR:
+      return SIMULATE_SHIFT | AK_4;
+    case SDLK_QUOTEDBL:
+      return SIMULATE_SHIFT | AK_QUOTE;
+    case SDLK_PLUS:
+      return SIMULATE_SHIFT | AK_EQUAL;
+    case SDLK_AT:
+      return SIMULATE_SHIFT | AK_2;
+    case SDLK_LEFTPAREN:
+      return SIMULATE_SHIFT | AK_9;
+    case SDLK_RIGHTPAREN:
+      return SIMULATE_SHIFT | AK_0;
+    case SDLK_EXCLAIM:
+      return SIMULATE_SHIFT | AK_1;
+    case SDLK_UNDERSCORE:
+      return SIMULATE_SHIFT | AK_MINUS;
+    case SDLK_2:
+      if(prKeySym->mod == KMOD_LSHIFT)
+        return SIMULATE_SHIFT | AK_LBRACKET;
+      break;
+    case SDLK_3:
+      if(prKeySym->mod == KMOD_LSHIFT)
+        return SIMULATE_SHIFT | AK_RBRACKET;
+      break;
+    case SDLK_4:
+      if(prKeySym->mod == KMOD_LSHIFT)
+        return SIMULATE_SHIFT | AK_BACKQUOTE;
+      break;
+    case SDLK_9:
+      if(prKeySym->mod == KMOD_LSHIFT)
+        return SIMULATE_RELEASED_SHIFT | AK_LBRACKET;
+      break;
+    case SDLK_0:
+      if(prKeySym->mod == KMOD_LSHIFT)
+        return SIMULATE_RELEASED_SHIFT | AK_RBRACKET;
+      break;
+    case 124: // code for '|'
+      return SIMULATE_SHIFT | AK_BACKSLASH;
+  }
+#endif
     switch (prKeySym->sym)
     {
     case SDLK_b: return AK_B;
@@ -533,6 +590,30 @@ void handle_events (void)
 				iAmigaKeyCode = keycode2amiga(&(rEvent.key.keysym));
 				if (iAmigaKeyCode >= 0)
 				{
+#ifdef PANDORA
+				  if(iAmigaKeyCode & SIMULATE_SHIFT)
+			    {
+            // We need to simulate shift
+            iAmigaKeyCode = iAmigaKeyCode & 0x1ff;
+            shiftWasPressed = uae4all_keystate[AK_LSH];
+            if(!shiftWasPressed)
+            {
+              uae4all_keystate[AK_LSH] = 1;
+              record_key(AK_LSH << 1);
+            }
+			    }
+				  if(iAmigaKeyCode & SIMULATE_RELEASED_SHIFT)
+			    {
+            // We need to simulate released shift
+            iAmigaKeyCode = iAmigaKeyCode & 0x1ff;
+            shiftWasPressed = uae4all_keystate[AK_LSH];
+            if(shiftWasPressed)
+            {
+              uae4all_keystate[AK_LSH] = 0;
+              record_key((AK_LSH << 1) | 1);
+            }
+			    }
+#endif
 					if (!uae4all_keystate[iAmigaKeyCode])
 					{
 						uae4all_keystate[iAmigaKeyCode] = 1;
@@ -587,6 +668,30 @@ void handle_events (void)
 				iAmigaKeyCode = keycode2amiga(&(rEvent.key.keysym));
 				if (iAmigaKeyCode >= 0)
 				{
+#ifdef PANDORA
+				  if(iAmigaKeyCode & SIMULATE_SHIFT)
+			    {
+            // We needed to simulate shift
+            iAmigaKeyCode = iAmigaKeyCode & 0x1ff;
+            if(!shiftWasPressed)
+            {
+              uae4all_keystate[AK_LSH] = 0;
+              record_key((AK_LSH << 1) | 1);
+              shiftWasPressed = 0;
+            }
+			    }
+				  if(iAmigaKeyCode & SIMULATE_RELEASED_SHIFT)
+			    {
+            // We needed to simulate released shift
+            iAmigaKeyCode = iAmigaKeyCode & 0x1ff;
+            if(shiftWasPressed)
+            {
+              uae4all_keystate[AK_LSH] = 1;
+              record_key(AK_LSH << 1);
+              shiftWasPressed = 0;
+            }
+			    }
+#endif
 					uae4all_keystate[iAmigaKeyCode] = 0;
 					record_key((iAmigaKeyCode << 1) | 1);
 				}

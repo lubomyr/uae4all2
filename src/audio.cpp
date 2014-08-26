@@ -104,7 +104,6 @@ void schedule_audio (void)
 {
 #ifdef UNROLL_LOOPS
     unsigned long best = MAX_EV;
-    struct audio_channel_data *cdp;
     eventtab[ev_audio].active = 0;
     eventtab[ev_audio].oldcycles = get_cycles ();
     SCHEDULE_AUDIO(0)
@@ -132,7 +131,7 @@ void schedule_audio (void)
 	struct audio_channel_data *cdp = &audio_channel[NR]; \
 	audio_channel_evtime[NR] = maxhpos * CYCLE_UNIT; \
 	audio_channel_state[NR] = 5; \
-	INTREQ(0x8000 | (0x80 << NR)); \
+	INTREQ((uae_u16)(0x8000 | (0x80 << NR))); \
 	if (cdp->wlen != 1) \
 	    cdp->wlen = (cdp->wlen - 1) & 0xFFFF; \
 	cdp->nextdat = CHIPMEM_WGET_CUSTOM (cdp->pt); \
@@ -159,7 +158,7 @@ void schedule_audio (void)
 	audio_channel_state[NR] = 3; \
 	if (adkcon & (0x10 << NR)) { \
 	    if (cdp->intreq2 && cdp->dmaen) \
-		INTREQ (0x8000 | (0x80 << NR)); \
+		INTREQ ((uae_u16)(0x8000 | (0x80 << NR))); \
 	    cdp->intreq2 = 0; \
 	    cdp->dat = cdp->nextdat; \
 	    if (cdp->dmaen) \
@@ -173,7 +172,7 @@ void schedule_audio (void)
 	audio_channel_state[NR] = 3; \
 	if (adkcon & (0x10 << NR)) { \
 	    if (cdp->intreq2 && cdp->dmaen) \
-		INTREQ (0x8000 | (0x80 << NR)); \
+		INTREQ ((uae_u16)(0x8000 | (0x80 << NR))); \
 	    cdp->intreq2 = 0; \
 	    cdp->dat = cdp->nextdat; \
 	    if (cdp->dmaen) \
@@ -199,7 +198,7 @@ void schedule_audio (void)
 	    audio_channel_state[NR] = 2; \
 	    if ((cdp->intreq2 && cdp->dmaen && napnav) \
 		|| (napnav && !cdp->dmaen)) \
-		INTREQ(0x8000 | (0x80 << NR)); \
+		INTREQ((uae_u16)(0x8000 | (0x80 << NR))); \
 	    cdp->intreq2 = 0; \
 	    cdp->dat = cdp->nextdat; \
 	    audio_channel_current_sample[NR] = (sample8_t)(cdp->dat >> 8); \
@@ -220,7 +219,7 @@ void schedule_audio (void)
 	    audio_channel_state[NR] = 2; \
 	    if ((cdp->intreq2 && cdp->dmaen && napnav) \
 		|| (napnav && !cdp->dmaen)) \
-		INTREQ(0x8000 | (0x80 << NR)); \
+		INTREQ((uae_u16)(0x8000 | (0x80 << NR))); \
 	    cdp->intreq2 = 0; \
 	    cdp->dat = cdp->nextdat; \
 	    audio_channel_current_sample[NR] = (sample8_t)(cdp->dat >> 8); \
@@ -232,7 +231,6 @@ void schedule_audio (void)
 	} 
 
 #define AUDIO_HANDLER_OTHER(NR) \
-	struct audio_channel_data *cdp = &audio_channel[NR]; \
 	audio_channel_state[NR] = 0;
 
 
@@ -543,7 +541,6 @@ void update_audio (void)
 {
     unsigned long int n_cycles;
 
-    uae4all_prof_start(4);
     n_cycles = get_cycles () - last_cycles;
 	for (;;) {
 		DEFINE_STATE
@@ -554,8 +551,6 @@ void update_audio (void)
 	}
 
 	last_cycles = get_cycles () - n_cycles;
-
-    uae4all_prof_end(4);
 }
 
 void audio_evhandler (void)
@@ -579,7 +574,7 @@ void AUDxDAT (int nr, uae_u16 v)
     cdp->dat = v;
     if (audio_channel_state[nr] == 0 && !(INTREQR() & (0x80 << nr))) {
 	audio_channel_state[nr] = 2;
-	INTREQ(0x8000 | (0x80 << nr));
+	INTREQ((uae_u16)(0x8000 | (0x80 << nr)));
 	/* data_written = 2 ???? */
 	audio_channel_evtime[nr] = cdp->per;
 	schedule_audio ();

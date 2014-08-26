@@ -227,6 +227,7 @@ static void goMenu(void)
 	menu_raise();
 	exitmode=run_mainMenu();
 #endif
+
 	/* Clear menu garbage at the bottom of the screen */
 	black_screen_now();
 	notice_screen_contents_lost();
