@@ -7,14 +7,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#ifndef WIN32
+#if !( defined(WIN32) || defined(AROS) )
 #include <sys/mman.h>
 #endif
 
 #include <unistd.h>
 #include <fcntl.h>
 
-#if !( defined(WIN32) || defined(ANDROIDSDL) )
+#if !( defined(WIN32) || defined(ANDROIDSDL) || defined(AROS))
 #include <sys/soundcard.h>
 #endif
 
@@ -27,7 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#if !( defined(WIN32) || defined(ANDROIDSDL) )
+#if !( defined(WIN32) || defined(ANDROIDSDL) || defined(AROS))
 #include <linux/soundcard.h>
 #endif
 
@@ -107,8 +107,9 @@ unsigned long gp2x_joystick_read(int allow_usb_joy)
 void gp2x_init(int argc, char **argv)
 {
 	unsigned long memdev;
-
+#ifndef AROS
 	mixerdev = open("/dev/mixer", O_RDWR);
+#endif
 	
 	SDL_ShowCursor(SDL_DISABLE);
 	getcwd(launchDir, 250);

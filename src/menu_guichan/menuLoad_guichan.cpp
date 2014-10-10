@@ -18,7 +18,7 @@
 #include "gui.h"
 #include "cfgfile.h"
 
-#ifdef WIN32
+#if defined(WIN32)
 #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
 #endif
 
@@ -27,6 +27,95 @@
 #define hddirterms extterms!=".hdf" && extterms!=".HDF" && extterms!=".Hdf"
 #define configterms extterms!="conf" && extterms!="CONF" && extterms!="Conf"
 
+#define _XOPEN_SOURCE 500
+#if defined(AROS)
+#include <limits.h>
+  
+    #if defined(__GP2X__) || defined(__WIZ__) || defined(__CAANOO__) || defined(__amigaos__)
+        // This is a random default value ...
+        #define PATH_MAX 32768
+    #endif
+  
+    static char *sep(char *path)
+    {
+        char *tmp, c;
+        
+        tmp = strrchr(path, '/');
+        if(tmp) {
+            c = tmp[1];
+            tmp[1] = 0;
+            if (chdir(path)) {
+                return NULL;
+            }
+            tmp[1] = c;
+            
+            return tmp + 1;
+        }
+        return path;
+    }
+
+    char *realpath(const char *_path, char *resolved_path)
+    {
+        int fd = open(".", O_RDONLY), l;
+        char current_dir_path[PATH_MAX];
+        char path[PATH_MAX], lnk[PATH_MAX], *tmp = (char *)"";
+        
+        if (fd < 0) {
+            return NULL;
+        }
+        getcwd(current_dir_path,PATH_MAX);
+        strncpy(path, _path, PATH_MAX);
+        
+        if (chdir(path)) {
+            if (errno == ENOTDIR) {
+                #if defined(__WIN32__) || defined(__MORPHOS__) || defined(__amigaos__)
+                    // No symbolic links and no readlink()
+                    l = -1;
+                #else
+                    l = readlink(path, lnk, PATH_MAX);
+                    #endif
+                    if (!(tmp = sep(path))) {
+                        resolved_path = NULL;
+                        goto abort;
+                    }
+                    if (l < 0) {
+                        if (errno != EINVAL) {
+                            resolved_path = NULL;
+                            goto abort;
+                        }
+                    } else {
+                        lnk[l] = 0;
+                        if (!(tmp = sep(lnk))) {
+                            resolved_path = NULL;
+                            goto abort;
+                        }
+                    }
+            } else {
+                resolved_path = NULL;
+                goto abort;
+            }
+        }
+        
+        if(resolved_path==NULL) // if we called realpath with null as a 2nd arg
+            resolved_path = (char*) malloc( PATH_MAX );
+                
+        if (!getcwd(resolved_path, PATH_MAX)) {
+            resolved_path = NULL;
+            goto abort;
+        }
+        
+        if(strcmp(resolved_path, "..") && *tmp) {
+            strcat(resolved_path, "..");
+        }
+        
+        strcat(resolved_path, tmp);
+      abort:
+        chdir(current_dir_path);
+        close(fd);
+        return resolved_path;
+    }
+
+#endif
 
 /* What is being loaded, floppy/hd dir/hdf */
 int menu_load_type;
@@ -104,10 +193,13 @@ namespace widgets
             else if (menu_load_type != MENU_LOAD_HD_DIR)
               files.push_back(dent->d_name);
           }
+
           if(dirs.size() > 0 && dirs[0] == ".")
             dirs.erase(dirs.begin());
+
           closedir(dir);
         }
+
         if(dirs.size() == 0)
           dirs.push_back("..");
 
@@ -233,7 +325,7 @@ namespace widgets
     public:
       void action(const gcn::ActionEvent& actionEvent)
       {
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(WIN32) || defined(ANDROIDSDL) || defined(AROS) || defined(RASPBERRY)
 	if (menu_load_type != MENU_LOAD_HD_DIR)
 	{
 #endif
@@ -254,7 +346,7 @@ namespace widgets
         strcat(filename, "/");
         strcat(filename, dirList.getElementAt(selected_item).c_str());
         checkfilename(filename);
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(WIN32) || defined(ANDROIDSDL) || defined(AROS) || defined(RASPBERRY)
 	}
 #endif
       }

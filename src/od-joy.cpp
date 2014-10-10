@@ -62,6 +62,7 @@ void read_joystick(int nr, unsigned int *dir, int *button)
     int x_axis, y_axis;
     int left = 0, right = 0, top = 0, bot = 0, upRight=0, downRight=0, upLeft=0, downLeft=0, x=0, y=0, a=0, b=0;
     int len, i, num;
+
     SDL_Joystick *joy = nr == 0 ? uae4all_joy0 : uae4all_joy1;
 
     *dir = 0;
@@ -124,10 +125,17 @@ void read_joystick(int nr, unsigned int *dir, int *button)
 	}
 	else if (!triggerR /*R+dpad = arrow keys*/ && !(mainMenu_customControls && !mainMenu_custom_dpad))
 	{
+#ifndef AROS
 		if (dpadRight || SDL_JoystickGetAxis(joy, 0) > 0) right=1;
 		if (dpadLeft || SDL_JoystickGetAxis(joy, 0) < 0) left=1;
 		if (dpadUp || SDL_JoystickGetAxis(joy, 1) < 0) top=1;
 		if (dpadDown || SDL_JoystickGetAxis(joy, 1) > 0) bot=1;
+#else
+		if (dpadRight) right=1;
+		if (dpadLeft) left=1;
+		if (dpadUp) top=1;
+		if (dpadDown) bot=1;
+#endif
 		if (mainMenu_joyConf)
 		{
 #ifdef USE_UAE4ALL_VKBD
@@ -212,13 +220,13 @@ void read_joystick(int nr, unsigned int *dir, int *button)
   	}
   	else
   	{
-#ifndef ANDROIDSDL
+#if !(defined(ANDROIDSDL) || defined(AROS))
    		*button = ((mainMenu_button1==GP2X_BUTTON_B && buttonA) || (mainMenu_button1==GP2X_BUTTON_X && buttonX) || (mainMenu_button1==GP2X_BUTTON_Y && buttonY) || SDL_JoystickGetButton(joy, mainMenu_button1)) & 1;
 #else
   		*button = ((mainMenu_button1==GP2X_BUTTON_B && buttonA) || (mainMenu_button1==GP2X_BUTTON_X && buttonX) || (mainMenu_button1==GP2X_BUTTON_Y && buttonY)) & 1;
 #endif
   		delay++;
-#ifdef PANDORA
+#if defined(PANDORA) && !defined(AROS)
   		*button |= ((buttonB || SDL_JoystickGetButton(joy, mainMenu_button2)) & 1) << 1;
 #else
   		*button |= ((buttonB) & 1) << 1;
@@ -283,11 +291,11 @@ void init_joystick(void)
     int i;
     nr_joysticks = SDL_NumJoysticks ();
     if (nr_joysticks > 0)
-	uae4all_joy0 = SDL_JoystickOpen (0);
+		uae4all_joy0 = SDL_JoystickOpen (0);
     if (nr_joysticks > 1)
-	uae4all_joy1 = SDL_JoystickOpen (1);
+		uae4all_joy1 = SDL_JoystickOpen (1);
     else
-	uae4all_joy1 = NULL;
+		uae4all_joy1 = NULL;
 }
 
 void close_joystick(void)

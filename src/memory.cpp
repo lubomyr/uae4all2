@@ -896,15 +896,7 @@ static int load_kickstart (void)
     FILE *f = uae4all_rom_fopen(romfile, "rb");
 
     if (f == NULL) {
-#if defined(AMIGA)||defined(__POS__)
-#define USE_UAE_ERSATZ "USE_UAE_ERSATZ"
-	if (!getenv (USE_UAE_ERSATZ)) {
-	    write_log ("Using current ROM. (create ENV:%s to " "use uae's ROM replacement)\n", USE_UAE_ERSATZ);
-	    memcpy (kickmemory, (char *) 0x1000000 - kickmem_size, kickmem_size);
-	    kickstart_checksum (kickmemory, kickmem_size);
-	    goto chk_sum;
-	}
-#endif
+
 	return 0;
     }
 

@@ -640,7 +640,7 @@ namespace widgets
     quitButtonActionListener = new QuitButtonActionListener();
     button_quit->addActionListener(quitButtonActionListener);
     
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
   	button_reset = new gcn::Button("Start");
 #else
    	button_reset = new gcn::Button("Reset");
@@ -1077,7 +1077,7 @@ int run_mainMenuGuichan()
 			resetCpuSpeed();
 #endif
 #ifndef USE_SDLSOUND
-			gp2x_stop_sound();
+//			gp2x_stop_sound();
 #endif
 			saveAdfDir();
 #ifndef ANDROIDSDL

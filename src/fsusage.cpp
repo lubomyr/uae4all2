@@ -66,7 +66,9 @@ int statfs ();
 #endif
 
 #if HAVE_SYS_VFS_H
+#ifndef AROS
 # include <sys/vfs.h>
+#endif
 #endif
 
 #if HAVE_SYS_FS_S5PARAM_H	/* Fujitsu UXP/V */
@@ -82,7 +84,9 @@ int statfs ();
 #endif
 
 #if HAVE_SYS_STATFS_H
+#ifndef AROS
 # include <sys/statfs.h>
+#endif
 #endif
 
 #if HAVE_DUSTAT_H		/* AIX PS/2 */

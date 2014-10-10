@@ -129,7 +129,7 @@ static void getChanges(void)
 int gui_init (void)
 {
     SDL_ShowCursor(SDL_DISABLE);
-#ifndef ANDROIDSDL
+#if !(defined(ANDROIDSDL) || defined(AROS))
     SDL_JoystickEventState(SDL_ENABLE);
     SDL_JoystickOpen(0);
 #endif

@@ -101,7 +101,7 @@ static int ncolors = 0;
 
 /* Keyboard and mouse */
 int uae4all_keystate[256];
-#ifdef PANDORA
+#if defined(PANDORA) || defined(ANDROIDSDL)
 static int shiftWasPressed = 0;
 #define SIMULATE_SHIFT 0x200
 #define SIMULATE_RELEASED_SHIFT 0x400
@@ -282,7 +282,9 @@ int graphics_init (void)
 
 static void graphics_subshutdown (void)
 {
+#ifndef AROS
     SDL_FreeSurface(prSDLScreen);
+#endif
 }
 
 void graphics_leave (void)

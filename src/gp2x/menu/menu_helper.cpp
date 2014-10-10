@@ -135,9 +135,9 @@ void update_display()
 	update_onscreen();
 #endif
 
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(WIN32) || defined(AROS))
 	prSDLScreen = SDL_SetVideoMode(visibleAreaWidth, mainMenu_displayedLines, 16, SDL_SWSURFACE|SDL_FULLSCREEN|SDL_DOUBLEBUF);
-#elif defined(PANDORA) && defined(WIN32)
+#elif defined(PANDORA) && (defined(WIN32) || defined(AROS))
 	prSDLScreen = SDL_SetVideoMode(visibleAreaWidth, mainMenu_displayedLines, 16, SDL_SWSURFACE|SDL_DOUBLEBUF);
 #else
 	prSDLScreen = SDL_SetVideoMode(visibleAreaWidth, mainMenu_displayedLines, 16, SDL_SWSURFACE|SDL_FULLSCREEN);

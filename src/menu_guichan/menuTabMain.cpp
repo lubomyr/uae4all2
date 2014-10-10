@@ -51,7 +51,7 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_chipsetocs;
   gcn::UaeRadioButton* radioButton_chipsetecs;
   gcn::UaeRadioButton* radioButton_chipsetaga;
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
   gcn::Container* backgrd_blittermode;
   gcn::Label* label_blittermode;
   gcn::UaeDropDown* dropDown_blittermode;
@@ -71,7 +71,7 @@ namespace widgets
   gcn::UaeRadioButton* radioButton_cpuspeed_7Mhz;
   gcn::UaeRadioButton* radioButton_cpuspeed_14Mhz;
   gcn::UaeRadioButton* radioButton_cpuspeed_28Mhz;
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
   gcn::UaeRadioButton* radioButton_cpuspeed_56Mhz;
   gcn::UaeRadioButton* radioButton_cpuspeed_112Mhz; 
 #endif
@@ -125,7 +125,7 @@ namespace widgets
   PandSpeedListModel pandSpeedList;  
 #endif
 
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
   class BlitterModeListModel : public gcn::ListModel
   {
     private:
@@ -189,7 +189,7 @@ namespace widgets
     public:
       void action(const gcn::ActionEvent& actionEvent)
       {
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
   	    if (actionEvent.getSource() == dropDown_blittermode)
 	      {
   	      switch(dropDown_blittermode->getSelected())
@@ -249,7 +249,7 @@ namespace widgets
 		      mainMenu_CPU_speed=1;
 	      else if (actionEvent.getSource() == radioButton_cpuspeed_28Mhz)
 		      mainMenu_CPU_speed=2;
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
 	      else if (actionEvent.getSource() == radioButton_cpuspeed_56Mhz)
 		      mainMenu_CPU_speed=3;
 	      else if (actionEvent.getSource() == radioButton_cpuspeed_112Mhz)
@@ -282,7 +282,7 @@ namespace widgets
   MemorySliderActionListener* memorySliderActionListener;
 
 
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
   class PandSpeedActionListener : public gcn::ActionListener
   {
     public:
@@ -343,7 +343,7 @@ namespace widgets
     group_chipset->setBaseColor(baseCol);
 
     // Select Blitter mode
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
   	label_blittermode = new gcn::Label("Blitter mode");
   	label_blittermode->setPosition(4, 2);
   	backgrd_blittermode = new gcn::Container();
@@ -432,7 +432,7 @@ namespace widgets
   	radioButton_cpuspeed_28Mhz = new gcn::UaeRadioButton("28MHz", "radiocpuspeedgroup");
   	radioButton_cpuspeed_28Mhz->setPosition(5,70);
   	radioButton_cpuspeed_28Mhz->setId("28MHz");
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
   	radioButton_cpuspeed_56Mhz = new gcn::UaeRadioButton("56MHz", "radiocpuspeedgroup");
   	radioButton_cpuspeed_56Mhz->setPosition(5,100);
   	radioButton_cpuspeed_56Mhz->setId("56MHz");
@@ -451,7 +451,7 @@ namespace widgets
 	radioButton_cpuspeed_7Mhz->addActionListener(cpuSpeedButtonActionListener);
 	radioButton_cpuspeed_14Mhz->addActionListener(cpuSpeedButtonActionListener);
 	radioButton_cpuspeed_28Mhz->addActionListener(cpuSpeedButtonActionListener);
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
 	radioButton_cpuspeed_56Mhz->addActionListener(cpuSpeedButtonActionListener);
 	radioButton_cpuspeed_112Mhz->addActionListener(cpuSpeedButtonActionListener);
 #endif
@@ -461,7 +461,7 @@ namespace widgets
 	group_cpuspeed->add(radioButton_cpuspeed_14Mhz);
 	group_cpuspeed->add(radioButton_cpuspeed_28Mhz);
 	group_cpuspeed->setMovable(false);
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
   	group_cpuspeed->add(radioButton_cpuspeed_56Mhz);
   	group_cpuspeed->add(radioButton_cpuspeed_112Mhz);
   	group_cpuspeed->setSize(87,175);
@@ -558,7 +558,7 @@ namespace widgets
   	window_memory->setSize(287,160);
     window_memory->setBaseColor(baseCol);
 
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
     // Pandora CPU speed
   	label_pandspeed = new gcn::Label("Pandora MHz");
   	label_pandspeed->setPosition(4, 2);
@@ -581,7 +581,7 @@ namespace widgets
 	tab_main->add(icon_winlogo);
 	tab_main->add(group_cpu);
 	tab_main->add(group_chipset);
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
     tab_main->add(backgrd_blittermode);
  	tab_main->add(dropDown_blittermode);
 #else
@@ -590,7 +590,7 @@ namespace widgets
 	tab_main->add(group_kickstart);
 	tab_main->add(group_cpuspeed);
 	tab_main->add(window_memory);
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
     tab_main->add(backgrd_pandspeed);
   	tab_main->add(dropDown_pandspeed);
 #endif
@@ -609,7 +609,7 @@ namespace widgets
     delete radioButton_chipsetocs;
     delete radioButton_chipsetecs;        
     delete radioButton_chipsetaga;
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
     delete backgrd_blittermode;
     delete label_blittermode;
     delete dropDown_blittermode;
@@ -629,7 +629,7 @@ namespace widgets
     delete radioButton_cpuspeed_7Mhz;
     delete radioButton_cpuspeed_14Mhz;
     delete radioButton_cpuspeed_28Mhz;
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
     delete radioButton_cpuspeed_56Mhz;
     delete radioButton_cpuspeed_112Mhz; 
 #endif
@@ -650,7 +650,7 @@ namespace widgets
   	delete slider_slowmem;
   	delete slider_fastmem;  
 
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
     delete backgrd_pandspeed;
     delete label_pandspeed;
     delete dropDown_pandspeed;
@@ -662,7 +662,7 @@ namespace widgets
     delete kickstartButtonActionListener;
     delete cpuSpeedButtonActionListener;
 	  delete memorySliderActionListener;
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
     delete pandSpeedActionListener;
 #endif
   }
@@ -681,7 +681,7 @@ namespace widgets
 	    radioButton_chipsetecs->setSelected(true);
 	  else if ((mainMenu_chipset & 0xff) == 2)
 	    radioButton_chipsetaga->setSelected(true);
-#if !(defined (ANDROIDSDL) || defined (WIN32))
+#if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
     if (mainMenu_chipset & 0x100)
       dropDown_blittermode->setSelected(1);
     else if (mainMenu_chipset & 0x200)
@@ -713,7 +713,7 @@ namespace widgets
 	    radioButton_cpuspeed_14Mhz->setSelected(true);
 	  else if (mainMenu_CPU_speed==2)
 	    radioButton_cpuspeed_28Mhz->setSelected(true);
-#if defined(WIN32) || defined(ANDROIDSDL)
+#if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
 	  else if (mainMenu_CPU_speed==3)
 	    radioButton_cpuspeed_56Mhz->setSelected(true);
 	  else if (mainMenu_CPU_speed==4)
@@ -730,7 +730,7 @@ namespace widgets
 	label_slowsize->setCaption(SlowMem_list[mainMenu_slowMemory]);
 	label_fastsize->setCaption(FastMem_list[mainMenu_fastMemory]);
 
-#if defined(PANDORA) && !defined(WIN32)
+#if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
     if(dropDown_pandspeed->getSelected() != (mainMenu_cpuSpeed - 500) / 20)
       dropDown_pandspeed->setSelected((mainMenu_cpuSpeed - 500) / 20);
 #endif
