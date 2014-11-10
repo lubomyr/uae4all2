@@ -516,9 +516,9 @@ namespace widgets
 	group_refreshrate->setSize(100,85);
 	group_refreshrate->setBaseColor(baseCol);
 #if defined(ANDROIDSDL) || defined(AROS)	
-	checkBox_vsync = new gcn::CheckBox("VSyncOff");
+	checkBox_vsync = new gcn::CheckBox("VSync");
 	checkBox_vsync->setPosition(180,215);
-	checkBox_vsync->setId("VSyncOff");
+	checkBox_vsync->setId("VSync");
 	checkBox_vsync->setBaseColor(baseColLabel);
 	vsyncActionListener = new VsyncActionListener();
 	checkBox_vsync->addActionListener(vsyncActionListener);
