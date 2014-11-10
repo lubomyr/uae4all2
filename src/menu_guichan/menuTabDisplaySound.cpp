@@ -66,6 +66,9 @@ namespace widgets
   gcn::UaeDropDown* dropDown_vertical_pos;
   gcn::UaeDropDown* dropDown_cut_left;
   gcn::UaeDropDown* dropDown_cut_right;
+#if defined(ANDROIDSDL) || defined(AROS)
+  gcn::CheckBox* checkBox_vsync;
+#endif
   
   // Sound
   gcn::Window *group_refreshrate;
@@ -289,6 +292,21 @@ namespace widgets
   };
   CutRightActionListener* cutRightActionListener;
 
+#if defined(ANDROIDSDL) || defined(AROS)
+  class VsyncActionListener : public gcn::ActionListener
+  {
+    public:
+      void action(const gcn::ActionEvent& actionEvent)
+      {
+	    if (actionEvent.getSource() == checkBox_vsync)
+	       if (checkBox_vsync->isSelected())
+			mainMenu_vsync=1;
+	       else
+			mainMenu_vsync=0;	      
+      }
+  };
+  VsyncActionListener* vsyncActionListener; 
+#endif
 
   class SoundActionListener : public gcn::ActionListener
   {
@@ -495,9 +513,17 @@ namespace widgets
   	group_refreshrate->add(radioButton_refreshrate_50Hz);
   	group_refreshrate->add(radioButton_refreshrate_60Hz);
   	group_refreshrate->setMovable(false);
-  	group_refreshrate->setSize(100,85);
-    group_refreshrate->setBaseColor(baseCol);
-    
+	group_refreshrate->setSize(100,85);
+	group_refreshrate->setBaseColor(baseCol);
+#if defined(ANDROIDSDL) || defined(AROS)	
+	checkBox_vsync = new gcn::CheckBox("VSyncOff");
+	checkBox_vsync->setPosition(180,215);
+	checkBox_vsync->setId("VSyncOff");
+	checkBox_vsync->setBaseColor(baseColLabel);
+	vsyncActionListener = new VsyncActionListener();
+	checkBox_vsync->addActionListener(vsyncActionListener);
+#endif
+	
   	// Select Sound enable/accuracy
   	radioButton_sound_off = new gcn::UaeRadioButton("off", "radiosoundpresentgroup");
   	radioButton_sound_off->setPosition(5,10);
@@ -593,6 +619,9 @@ namespace widgets
     tab_displaysound->add(backgrd_cut_right);
   	tab_displaysound->add(dropDown_cut_right);
   	tab_displaysound->add(group_refreshrate);
+#if defined(ANDROIDSDL) || defined(AROS)	
+	tab_displaysound->add(checkBox_vsync);
+#endif	
   	tab_displaysound->setSize(600,280);
     tab_displaysound->setBaseColor(baseCol);
   	tab_displaysound->add(group_sound_enable);
@@ -639,11 +668,14 @@ namespace widgets
   	delete group_refreshrate;
   	delete radioButton_refreshrate_50Hz;
   	delete radioButton_refreshrate_60Hz;
+#if defined(ANDROIDSDL) || defined(AROS)
+	delete checkBox_vsync;
+#endif
   	delete group_sound_enable;
   	delete radioButton_sound_off;
   	delete radioButton_sound_fast;
   	delete radioButton_sound_accurate;
-    delete group_sound_rate;
+  	delete group_sound_rate;
   	delete radioButton_soundrate_8k;
   	delete radioButton_soundrate_11k;
   	delete radioButton_soundrate_22k;
@@ -795,7 +827,12 @@ namespace widgets
 	    radioButton_refreshrate_50Hz->setSelected(true);
 	  else if (mainMenu_ntsc)
 	    radioButton_refreshrate_60Hz->setSelected(true);
-
+#if defined(ANDROIDSDL) || defined(AROS)	  
+	if (mainMenu_vsync)
+	    checkBox_vsync->setSelected(true);
+	else
+	    checkBox_vsync->setSelected(false);
+#endif
   	if (mainMenu_sound==0)
 	    radioButton_sound_off->setSelected(true);
 	  else if (mainMenu_sound==1)

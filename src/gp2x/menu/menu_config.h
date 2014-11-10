@@ -96,4 +96,7 @@ extern int menuLoad_extfilter;
 extern int mainMenu_quickSwitch;
 extern int mainMenu_FloatingJoystick;
 #endif
+#if defined(ANDROIDSDL) || defined(AROS)
+extern int mainMenu_vsync;
+#endif
 #endif

@@ -133,6 +133,9 @@ int menuLoad_extfilter=1;
 int mainMenu_quickSwitch=0;
 int mainMenu_FloatingJoystick=0;
 #endif
+#if defined(ANDROIDSDL) || defined(AROS)
+int mainMenu_vsync=0;
+#endif
 
 void SetDefaultMenuSettings(int general)
 {
@@ -1022,6 +1025,10 @@ int saveconfig(int general)
 	snprintf((char*)buffer, 255, "FloatingJoystick=%d\n",mainMenu_FloatingJoystick);
  	fputs(buffer,f);
 #endif
+#if defined(ANDROIDSDL) || defined(AROS)
+	snprintf((char*)buffer, 255, "VSync=%d\n",mainMenu_vsync);
+ 	fputs(buffer,f);
+#endif
 	fclose(f);
 	return 1;
 }
@@ -1270,7 +1277,9 @@ void loadconfig(int general)
 		fscanf(f,"quick_switch=%d\n",&mainMenu_quickSwitch);
 		fscanf(f,"FloatingJoystick=%d\n",&mainMenu_FloatingJoystick);
 #endif
-	
+#if defined(ANDROIDSDL) || defined(AROS)
+		fscanf(f,"VSync=%d\n",&mainMenu_vsync);
+#endif
 		fclose(f);
 	}
 

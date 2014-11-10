@@ -241,7 +241,22 @@ static __inline__ void count_frame (void)
 	switch(prefs_gfx_framerate)
 	{
 		case 0: // draw every frame (Limiting is done by waiting for vsync...)
-			fs_framecnt = 0;
+#if defined(ANDROIDSDL) || defined(AROS)
+			if (!mainMenu_vsync)
+#endif
+			  fs_framecnt = 0;
+#if defined(ANDROIDSDL) || defined(AROS)
+			else
+			{
+			  // Limiter
+			  while(getTime10MicroSec() < lastTick + ticksPerFrame)
+			  {
+				  usleep(100);
+				  gettimeofday(&tv, 0);
+			  }
+			  lastTick += ticksPerFrame;
+			}
+#endif
 			break;
 			
 		case 1: // draw every second frame
@@ -249,7 +264,7 @@ static __inline__ void count_frame (void)
 			if (fs_framecnt > 1)
 				fs_framecnt = 0;
 			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
+			while(getTime10MicroSec() < lastTick + ticksPerFrame)
 			{
 				usleep(100);
 				gettimeofday(&tv, 0);
