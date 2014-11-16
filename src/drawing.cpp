@@ -242,7 +242,7 @@ static __inline__ void count_frame (void)
 	{
 		case 0: // draw every frame (Limiting is done by waiting for vsync...)
 #if defined(ANDROIDSDL) || defined(AROS)
-			if (!mainMenu_vsync)
+			if (mainMenu_vsync)
 #endif
 			  fs_framecnt = 0;
 #if defined(ANDROIDSDL) || defined(AROS)
