@@ -1,0 +1,176 @@
+MORE_CFLAGS += -DGP2X -DPANDORA -DRASPBERRY -DUSE_VKBD
+
+NAME   = uae4all
+O      = o
+RM     = rm -f
+
+PROG   = $(NAME)
+
+all: $(PROG)
+
+FAME_CORE=1
+FAME_CORE_C=1
+#SDLSOUND=1
+NEWSDLSOUND=1
+#DEBUG=1
+#TEXT_GUI=1
+GUICHAN_GUI=1
+#ANDROIDSDL=1
+
+DEFAULT_CFLAGS = `sdl-config --cflags`
+
+#LDFLAGS = -lSDL  -lpthread  -lz -lSDL_image -lpng12 
+LDFLAGS = -lbcm_host -L/opt/vc/lib -lguichan -lguichan_sdl -lSDL_image -lz -lpng -lpthread `sdl-config --libs` -lSDL_ttf
+MORE_CFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vcos/pthreads
+MORE_CFLAGS +=   -Isrc -Isrc/gp2x -Isrc/vkbd -Isrc/menu -Isrc/include -Isrc/gp2x/menu -fomit-frame-pointer -Wno-unused -Wno-format -DUSE_SDL -DGCCCONSTFUNC="__attribute__((const))" -DUSE_UNDERSCORE -fexceptions -DUNALIGNED_PROFITABLE -DOPTIMIZED_FLAGS -DSHM_SUPPORT_LINKS=0 -DOS_WITHOUT_MEMORY_MANAGEMENT 
+MORE_CFLAGS += -DUSE_ARMV7 -DUSE_ARMNEON
+#-DMENU_MUSIC
+
+MORE_CFLAGS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
+
+#MORE_CFLAGS += -msoft-float -ffast-math
+MORE_CFLAGS += -march=armv6zk -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -ffast-math
+ifndef DEBUG
+MORE_CFLAGS += -O2
+MORE_CFLAGS += -fstrict-aliasing -mstructure-size-boundary=32 -fexpensive-optimizations
+MORE_CFLAGS += -fweb -frename-registers -fomit-frame-pointer
+#MORE_CFLAGS += -falign-functions=32 -falign-loops -falign-labels -falign-jumps
+MORE_CFLAGS += -falign-functions=32
+MORE_CFLAGS += -finline -finline-functions -fno-builtin
+else
+MORE_CFLAGS += -ggdb -DDEBUG_GFX 
+endif
+
+MORE_CFLAGS+=-DUSE_EMULATED_JOYSTICK
+
+ASFLAGS += -mfloat-abi=soft -Wall
+
+MORE_CFLAGS+= -DUSE_AUTOCONFIG
+MORE_CFLAGS+= -DUSE_ZFILE
+MORE_CFLAGS+= -DFAME_INTERRUPTS_PATCH
+# Turrican3 becomes unstable if this is not enabled
+MORE_CFLAGS+= -DSAFE_MEMORY_ACCESS
+#MORE_CFLAGS+= -DDEBUG_SAVESTATE
+
+CFLAGS  = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
+
+OBJS =	\
+	src/audio.o \
+	src/autoconf.o \
+	src/blitfunc.o \
+	src/blittable.o \
+	src/blitter.o \
+	src/cfgfile.o \
+	src/cia.o \
+	src/savedisk.o \
+	src/savestate.o \
+	src/custom.o \
+	src/disk.o \
+	src/drawing.o \
+	src/ersatz.o \
+	src/expansion.o \
+	src/filesys.o \
+	src/fsdb.o \
+	src/fsdb_unix.o \
+	src/fsusage.o \
+	src/gfxutil.o \
+	src/hardfile.o \
+	src/keybuf.o \
+	src/main.o \
+	src/memory.o \
+	src/missing.o \
+	src/native2amiga.o \
+	src/neon_helper.o \
+	src/gui.o \
+	src/od-joy.o \
+	src/scsi-none.o \
+	src/sdlgfx.o \
+	src/writelog.o \
+	src/zfile.o \
+	src/menu/fade.o \
+	src/vkbd/vkbd.o \
+	src/gp2x/memcpy.o \
+	src/gp2x/memset.o \
+	src/gp2x/gp2x.o \
+	src/gp2x/inputmode.o \
+	src/gp2x/menu/menu_helper.o \
+	src/gp2x/menu/menu_config.o \
+	src/gp2x/menu/menu.o
+ifdef GUICHAN_GUI
+CFLAGS+= -DUSE_GUICHAN
+OBJS += src/menu_guichan/menu_guichan.o \
+	src/menu_guichan/menuTabMain.o \
+	src/menu_guichan/menuTabFloppy.o \
+	src/menu_guichan/menuTabHD.o \
+	src/menu_guichan/menuTabDisplaySound.o \
+	src/menu_guichan/menuTabSavestates.o \
+	src/menu_guichan/menuTabControl.o \
+	src/menu_guichan/menuTabCustomCtrl.o \
+	src/menu_guichan/menuMessage.o \
+	src/menu_guichan/menuLoad_guichan.o \
+	src/menu_guichan/menuConfigManager.o \
+	src/menu_guichan/uaeradiobutton.o \
+	src/menu_guichan/uaedropdown.o
+ifdef PANDORA
+OBJS += src/menu_guichan/sdltruetypefont.o
+endif
+else
+OBJS += src/gp2x/menu/menu_fileinfo.o \
+	src/gp2x/menu/menu_load.o \
+	src/gp2x/menu/menu_main.o \
+	src/gp2x/menu/menu_savestates.o \
+	src/gp2x/menu/menu_misc.o \
+	src/gp2x/menu/menu_controls.o \
+	src/gp2x/menu/menu_display.o \
+	src/gp2x/menu/menu_memory_disk.o
+endif
+
+ifdef SDLSOUND
+CFLAGS+= -DUSE_SDLSOUND
+OBJS += src/sound.o
+else
+ifdef NEWSDLSOUND
+OBJS += src/sound_sdl_new.o
+else
+OBJS += src/sound_gp2x.o
+endif
+endif
+
+ifdef FAME_CORE
+ifdef FAME_CORE_C
+CFLAGS+=-DUSE_FAME_CORE -DUSE_FAME_CORE_C -DFAME_IRQ_CLOCKING -DFAME_CHECK_BRANCHES -DFAME_EMULATE_TRACE -DFAME_DIRECT_MAPPING -DFAME_BYPASS_TAS_WRITEBACK -DFAME_ACCURATE_TIMING -DFAME_GLOBAL_CONTEXT -DFAME_FETCHBITS=8 -DFAME_DATABITS=8 -DFAME_NO_RESTORE_PC_MASKED_BITS
+CFLAGS+=-DWITH_TESTMODE
+
+src/m68k/fame/famec.o: src/m68k/fame/famec.cpp
+OBJS += src/m68k/fame/famec.o
+else
+CFLAGS+=-DUSE_FAME_CORE
+src/m68k/fame/fame.o: src/m68k/fame/fame.asm
+	nasm src/m68k/fame/fame.asm
+OBJS += src/m68k/fame/fame.o
+endif
+OBJS += src/m68k/fame/m68k_intrf.o
+OBJS += src/m68k/m68k_cmn_intrf.o
+else
+OBJS += \
+	src/m68k/uae/newcpu.o \
+	src/m68k/uae/readcpu.o \
+	src/m68k/uae/cpudefs.o \
+	src/m68k/uae/fpp.o \
+	src/m68k/uae/cpustbl.o \
+	src/m68k/uae/cpuemu.o
+endif
+
+CPPFLAGS  = $(CFLAGS)
+
+$(PROG): $(OBJS)
+	$(CXX) $(CFLAGS) -o $(PROG) $(OBJS) $(LDFLAGS) -lpng
+ifndef DEBUG
+	$(STRIP) $(PROG)
+endif
+
+run: $(PROG)
+	./$(PROG)
+
+clean:
+	$(RM) $(PROG) $(OBJS)
