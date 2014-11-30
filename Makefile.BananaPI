@@ -42,7 +42,7 @@ endif
 
 MORE_CFLAGS+=-DUSE_EMULATED_JOYSTICK
 
-ASFLAGS += -mfloat-abi=soft -Wall
+ASFLAGS += -mfloat-abi=soft -Wall -mfpu=neon
 
 MORE_CFLAGS+= -DUSE_AUTOCONFIG
 MORE_CFLAGS+= -DUSE_ZFILE
