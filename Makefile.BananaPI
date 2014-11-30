@@ -28,10 +28,9 @@ MORE_CFLAGS += -DUSE_ARMV7 -DUSE_ARMNEON
 
 MORE_CFLAGS += -DROM_PATH_PREFIX=\"./\" -DDATA_PREFIX=\"./data/\" -DSAVE_PREFIX=\"./saves/\"
 
-#MORE_CFLAGS += -msoft-float -ffast-math
-MORE_CFLAGS += -march=armv6zk -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfpu=vfp -mfloat-abi=hard -ffast-math
+MORE_CFLAGS +=  -march=armv7-a -mfloat-abi=softfp -mfpu=neon
 ifndef DEBUG
-MORE_CFLAGS += -O2
+MORE_CFLAGS += -O2 -ffast-math
 MORE_CFLAGS += -fstrict-aliasing -mstructure-size-boundary=32 -fexpensive-optimizations
 MORE_CFLAGS += -fweb -frename-registers -fomit-frame-pointer
 #MORE_CFLAGS += -falign-functions=32 -falign-loops -falign-labels -falign-jumps
