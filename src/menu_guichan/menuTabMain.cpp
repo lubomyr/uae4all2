@@ -191,7 +191,6 @@ namespace widgets
       {
 #if !(defined (ANDROIDSDL) || defined (WIN32) || defined (AROS))
   	    if (actionEvent.getSource() == dropDown_blittermode)
-	      {
   	      switch(dropDown_blittermode->getSelected())
   	      {
   	        case 1:
