@@ -543,7 +543,7 @@ namespace widgets
 #ifdef ANDROIDSDL
 	if (menuLoad_extfilter==0)
 	    checkBox_extfilter->setSelected(false);
-	else if (mainMenu_onScreen==1)
+	else if (menuLoad_extfilter==1)
 	    checkBox_extfilter->setSelected(true);
 #endif
     window_load->setVisible(true);

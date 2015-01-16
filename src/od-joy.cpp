@@ -25,6 +25,10 @@
 #include "vkbd.h"
 #endif
 
+#ifdef ANDROIDSDL
+#include <android/log.h>
+#endif
+
 #ifdef GP2X
 #include "gp2x.h"
 #include "xwin.h"
@@ -50,10 +54,9 @@ bool switch_autofire=false;
 int delay=0;
 #endif
 
-
 int nr_joysticks;
 
-SDL_Joystick *uae4all_joy0, *uae4all_joy1;
+SDL_Joystick *uae4all_joy0, *uae4all_joy1, *uae4all_joy2;
 extern SDL_Surface *prSDLScreen;
 
 void read_joystick(int nr, unsigned int *dir, int *button)
@@ -71,6 +74,23 @@ void read_joystick(int nr, unsigned int *dir, int *button)
     nr = (~nr)&0x1;
 
     SDL_JoystickUpdate ();
+
+#ifdef ANDROIDSDL
+    if (nr_joysticks > 2)
+    {
+	int axis0,axis1,axis2,axis3;
+	axis0 = SDL_JoystickGetAxis(uae4all_joy2, 0);
+	axis1 = SDL_JoystickGetAxis(uae4all_joy2, 1);
+	axis2 = SDL_JoystickGetAxis(uae4all_joy2, 2);
+	axis3 = SDL_JoystickGetAxis(uae4all_joy2, 3);
+//	__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2", "joy2: axis0 axis1 %d %d", axis0, axis1);
+//	__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2", "joy2: axis2 axis3 %d %d", axis2, axis3);
+	if ((axis0 > 512) || (axis2 > 512)) right=1;
+	if ((axis0 < -512) || (axis2 < -512)) left=1;
+	if ((axis1 < -512) || (axis3 < -512)) top=1;
+	if ((axis1 > 512) || (axis3 > 512)) bot=1;
+}
+#endif
 
 	int mouseScale = mainMenu_mouseMultiplier * 4;
 	if (mouseScale > 99)
@@ -136,6 +156,7 @@ void read_joystick(int nr, unsigned int *dir, int *button)
 		if (dpadUp) top=1;
 		if (dpadDown) bot=1;
 #endif
+
 		if (mainMenu_joyConf)
 		{
 #ifdef USE_UAE4ALL_VKBD
@@ -295,7 +316,11 @@ void init_joystick(void)
     if (nr_joysticks > 1)
 		uae4all_joy1 = SDL_JoystickOpen (1);
     else
-		uae4all_joy1 = NULL;
+		uae4all_joy1 = NULL; 
+    if (nr_joysticks > 2)
+		uae4all_joy2 = SDL_JoystickOpen (2);
+    else
+		uae4all_joy2 = NULL;
 }
 
 void close_joystick(void)
@@ -304,4 +329,6 @@ void close_joystick(void)
 	SDL_JoystickClose (uae4all_joy0);
     if (nr_joysticks > 1)
 	SDL_JoystickClose (uae4all_joy1);
+    if (nr_joysticks > 2)
+	SDL_JoystickClose (uae4all_joy2);
 }
