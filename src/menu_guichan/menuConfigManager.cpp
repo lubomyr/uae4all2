@@ -24,8 +24,8 @@
 #define ext2terms configstring.size()>=5 && configstring.substr(configstring.size()-5)
 #define config2terms ext2terms!=".conf" && ext2terms!=".CONF" && ext2terms!=".Conf"
 
-static char config_filename_default[255]={
-	'/', 't', 'm', 'p', '/', 'n', 'u', 'l', 'l', '.', 'c', 'o', 'n', 'f', '\0'
+static char config_filename_default[255]= {
+    '/', 't', 'm', 'p', '/', 'n', 'u', 'l', 'l', '.', 'c', 'o', 'n', 'f', '\0'
 };
 char *config_filename=(char *)&config_filename_default[0];
 
@@ -34,94 +34,85 @@ extern char launchDir[300];
 
 static void BuildBaseDir(char *filename)
 {
-  strcpy(filename, "");
-  strcat(filename, launchDir);
-  strcat(filename, "/customconf");
+    strcpy(filename, "");
+    strcat(filename, launchDir);
+    strcat(filename, "/customconf");
 }
 
 
 namespace widgets
 {
-  void show_settings(void);
-  static void unraise_config_guichan();
-  void showWarning(const char *msg, const char *msg2 = "");
-  void showInfo(const char *msg, const char *msg2 = "");
+void show_settings(void);
+static void unraise_config_guichan();
+void showWarning(const char *msg, const char *msg2 = "");
+void showInfo(const char *msg, const char *msg2 = "");
 
-  extern gcn::Color baseCol;
-  extern gcn::Widget* activateAfterClose;
-  gcn::Window *window_config;
-  gcn::Button* button_cfg_load;
-  gcn::Button* button_cfg_save;
-  gcn::Button* button_cfg_delete;
-  gcn::Button* button_cfg_cancel;
-  gcn::TextField* textField_config;
+extern gcn::Color baseCol;
+extern gcn::Widget* activateAfterClose;
+gcn::Window *window_config;
+gcn::Button* button_cfg_load;
+gcn::Button* button_cfg_save;
+gcn::Button* button_cfg_delete;
+gcn::Button* button_cfg_cancel;
+gcn::TextField* textField_config;
 #ifdef ANDROIDSDL
-  gcn::Button* button_vkeybd;
+gcn::Button* button_vkeybd;
 #endif
 
-  gcn::ListBox* configlistBox;
-  gcn::ScrollArea* configScrollArea;
+gcn::ListBox* configlistBox;
+gcn::ScrollArea* configScrollArea;
 
 
-  class ConfigListModel : public gcn::ListModel
-  {
+class ConfigListModel : public gcn::ListModel
+{
     std::vector<std::string> files;
 
-    public:
-      ConfigListModel(const char * path)
-      {
+public:
+    ConfigListModel(const char * path) {
         changeDir(path);
-      }
-      
-      int getNumberOfElements()
-      {
+    }
+
+    int getNumberOfElements() {
         return files.size();
-      }
-      
-      std::string getElementAt(int i)
-      {
+    }
+
+    std::string getElementAt(int i) {
         if(i >= files.size() || i < 0)
-          return "---";
+            return "---";
         return files[i];
-      }
-      
-      void changeDir(const char * path)
-      {
+    }
+
+    void changeDir(const char * path) {
         files.clear();
         DIR *dir;
         struct dirent *dent;
         dir = opendir(path);
-        if(dir != NULL)
-        {
-          while((dent=readdir(dir))!=NULL)
-          {
-            if(!(dent->d_type == DT_DIR))
-              files.push_back(dent->d_name);
-          }
-          closedir(dir);
+        if(dir != NULL) {
+            while((dent=readdir(dir))!=NULL) {
+                if(!(dent->d_type == DT_DIR))
+                    files.push_back(dent->d_name);
+            }
+            closedir(dir);
         }
         std::sort(files.begin(), files.end());
 #ifdef ANDROIDSDL
-	    if (menuLoad_extfilter==1)
-#endif	    
-  	    for (int q=0; q<files.size(); q++)
-	      {
-	        if (configterms)
-	        {
-		        files.erase(files.begin()+q);
-		        q--;
-	        }
-	      }
-      }
-  };
-  ConfigListModel configList(".");
+        if (menuLoad_extfilter==1)
+#endif
+            for (int q=0; q<files.size(); q++) {
+                if (configterms) {
+                    files.erase(files.begin()+q);
+                    q--;
+                }
+            }
+    }
+};
+ConfigListModel configList(".");
 
 
-  class CfgLoadButtonActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
+class CfgLoadButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
         int selected_item;
         selected_item = configlistBox->getSelected();
         BuildBaseDir(config_filename);
@@ -130,112 +121,103 @@ namespace widgets
         loadconfig(3);
         unraise_config_guichan();
         showInfo("Config file loaded.");
-      }
-  };
-  CfgLoadButtonActionListener* cfgloadButtonActionListener;
-  
-  
-  class CfgSaveButtonActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
-    	  char filename[256]="";
-    	  std::string configstring;
+    }
+};
+CfgLoadButtonActionListener* cfgloadButtonActionListener;
+
+
+class CfgSaveButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        char filename[256]="";
+        std::string configstring;
 
         BuildBaseDir(config_filename);
-    	  strcat(config_filename, "/");
-    	  configstring = textField_config->getText().c_str();
-    	  strcat(config_filename, textField_config->getText().c_str());
-    	  // check extension of editable name
-    	  if (config2terms || configstring.size()<5)
-          strcat(config_filename, ".conf");
+        strcat(config_filename, "/");
+        configstring = textField_config->getText().c_str();
+        strcat(config_filename, textField_config->getText().c_str());
+        // check extension of editable name
+        if (config2terms || configstring.size()<5)
+            strcat(config_filename, ".conf");
 //__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2","cfg filename = %s", filename);
-    	  saveconfig(3);
-    	  unraise_config_guichan();
-    	  showInfo("Config file saved.");
-      }
-  };
-  CfgSaveButtonActionListener* cfgsaveButtonActionListener;
-  
-  
-  class CfgDeleteButtonActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
+        saveconfig(3);
+        unraise_config_guichan();
+        showInfo("Config file saved.");
+    }
+};
+CfgSaveButtonActionListener* cfgsaveButtonActionListener;
+
+
+class CfgDeleteButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
         int selected_item;
         selected_item = configlistBox->getSelected();
         BuildBaseDir(config_filename);
         strcat(config_filename, "/");
         strcat(config_filename, configList.getElementAt(selected_item).c_str());
-    	  if(unlink(config_filename))
-    	  {
-  	      unraise_config_guichan();
-  	      showWarning("Failed to delete config.");
-    	  }
-    	  else
-  	    {
-          BuildBaseDir(config_filename);
-    	    configList = config_filename;
+        if(unlink(config_filename)) {
+            unraise_config_guichan();
+            showWarning("Failed to delete config.");
+        } else {
+            BuildBaseDir(config_filename);
+            configList = config_filename;
         }
-      }
-  };
-  CfgDeleteButtonActionListener* cfgdeleteButtonActionListener;
+    }
+};
+CfgDeleteButtonActionListener* cfgdeleteButtonActionListener;
 
-  
-  class CfgCancelButtonActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
-	      unraise_config_guichan();
-      }
-  };
-  CfgCancelButtonActionListener* cfgcancelButtonActionListener;
+
+class CfgCancelButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        unraise_config_guichan();
+    }
+};
+CfgCancelButtonActionListener* cfgcancelButtonActionListener;
 
 
 #ifdef ANDROIDSDL
-  class VkeybdButtonActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
-      	SDL_ANDROID_ToggleScreenKeyboardTextInput("old text");
-      }
-  };
-  VkeybdButtonActionListener* vkeybdButtonActionListener;
+class VkeybdButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        SDL_ANDROID_ToggleScreenKeyboardTextInput("old text");
+    }
+};
+VkeybdButtonActionListener* vkeybdButtonActionListener;
 #endif
 
-  
-  class TextFieldconfigActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
+
+class TextFieldconfigActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
 #ifdef ANDROIDSDL
-	SDL_ANDROID_ToggleScreenKeyboardTextInput("old text");
+        SDL_ANDROID_ToggleScreenKeyboardTextInput("old text");
 #endif
-      }
-  };
-  TextFieldconfigActionListener* textFieldconfigActionListener;
+    }
+};
+TextFieldconfigActionListener* textFieldconfigActionListener;
 
 
-  class ConfiglistBoxActionListener : public gcn::ActionListener
-  {
-    public:
-      void action(const gcn::ActionEvent& actionEvent)
-      {
-    	  int selected_item;
-    	  selected_item = configlistBox->getSelected();
-    	  textField_config->setText(configList.getElementAt(selected_item).c_str());
-      }
-  };
-  ConfiglistBoxActionListener* configlistBoxActionListener;
+class ConfiglistBoxActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        int selected_item;
+        selected_item = configlistBox->getSelected();
+        textField_config->setText(configList.getElementAt(selected_item).c_str());
+    }
+};
+ConfiglistBoxActionListener* configlistBoxActionListener;
 
 
-  void confMan_Init()
-  {
+void confMan_Init()
+{
     activateAfterClose = NULL;
     button_cfg_load = new gcn::Button("Load");
     button_cfg_load->setId("cfgLoad");
@@ -288,12 +270,12 @@ namespace widgets
 #endif
     textField_config = new gcn::TextField("");
     textField_config->setId("cfgText");
-  	textField_config->setPosition(10,10);
-  	textField_config->setSize(295,22);
+    textField_config->setPosition(10,10);
+    textField_config->setSize(295,22);
     textField_config->setBaseColor(baseCol);
     textFieldconfigActionListener = new TextFieldconfigActionListener();
     textField_config->addActionListener(textFieldconfigActionListener);
-    
+
     configlistBox = new gcn::ListBox(&configList);
     configlistBox->setId("configList");
     configlistBox->setSize(650,150);
@@ -307,7 +289,7 @@ namespace widgets
     configScrollArea->setSize(295,228);
     configScrollArea->setScrollbarWidth(20);
     configScrollArea->setBaseColor(baseCol);
-    
+
     window_config = new gcn::Window("Config Manager");
     window_config->setSize(400,300);
     window_config->setBaseColor(baseCol);
@@ -321,11 +303,11 @@ namespace widgets
     window_config->add(textField_config);
     window_config->add(configScrollArea);
     window_config->setVisible(false);
-  }
+}
 
 
-  void confMan_Exit()
-  {
+void confMan_Exit()
+{
     delete configlistBox;
     delete configScrollArea;
 
@@ -337,7 +319,7 @@ namespace widgets
 #ifdef ANDROIDSDL
     delete button_vkeybd;
 #endif
-  	
+
     delete cfgloadButtonActionListener;
     delete cfgsaveButtonActionListener;
     delete cfgdeleteButtonActionListener;
@@ -347,35 +329,35 @@ namespace widgets
 #endif
     delete textFieldconfigActionListener;
     delete configlistBoxActionListener;
-    	
+
     delete window_config;
-  }
-  
-  
-  static void unraise_config_guichan()
-  {
+}
+
+
+static void unraise_config_guichan()
+{
     window_config->releaseModalFocus();
     window_config->setVisible(false);
     if(activateAfterClose != NULL)
-      activateAfterClose->requestFocus();
-    activateAfterClose = NULL;  
+        activateAfterClose->requestFocus();
+    activateAfterClose = NULL;
     show_settings();
-  }
+}
 
 
-  static void raise_config_guichan()
-  {
+static void raise_config_guichan()
+{
     window_config->setVisible(true);
     window_config->requestModalFocus();
     configlistBox->requestFocus();
-  }
+}
 
 
-  void run_config_guichan()
-  {
+void run_config_guichan()
+{
     BuildBaseDir(config_filename);
     configList = config_filename;
     raise_config_guichan();
-  } 
-  
+}
+
 }
