@@ -535,8 +535,8 @@ void gui_handle_events (void)
 	}
 	else if(justLK)
 		justLK=0;
-	//textUI virtual keyboard via buttonB+buttonY
-	if(buttonB && buttonY)
+	// Quick Switch - textUI virtual keyboard via buttonB+buttonY
+	if((mainMenu_quickSwitch==1) && buttonB && buttonY)
 	{
 		if(!justLK)
 		{
