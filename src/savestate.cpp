@@ -501,6 +501,7 @@ void save_state (char *filename, const char *description)
 #endif
     dst = save_expansion (&len);
     save_chunk (f, dst, len, "EXPA");
+    free (dst);
     dst = save_cram (&len);
     save_chunk_compressed (f, dst, len, "CRAM");
     dst = save_bram (&len);

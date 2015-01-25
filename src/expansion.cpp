@@ -998,15 +998,16 @@ void restore_zram (uae_u32 len, size_t filepos)
 
 uae_u8 *save_expansion (int *len)
 {
-    static uae_u8 t[20], *dst = t;
+    uae_u8 *dstbak,*dst;
+    dstbak = dst = (uae_u8 *)malloc (16);
     save_u32 (fastmem_start);
 #if defined(PANDORA) || defined(ANDROIDSDL)
     save_u32 (0);
 #else
     save_u32 (z3fastmem_start);
 #endif
-    *len = 8;
-    return t;
+    *len = dst - dstbak;
+    return dstbak;
 }
 
 uae_u8 *restore_expansion (uae_u8 *src)

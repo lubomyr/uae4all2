@@ -378,7 +378,6 @@ struct uaedev_mount_info *alloc_mountinfo (void)
     ui->unit_pipe = 0;
     ui->back_pipe = 0;
 
-	ui->volname = 0;
 	ui->hf.size = 0;
 	ui->hf.secspertrack = 0;
 	ui->hf.surfaces = 0;

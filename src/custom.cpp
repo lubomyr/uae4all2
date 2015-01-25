@@ -783,7 +783,7 @@ STATIC_INLINE void beginning_of_plane_block (int pos, int fm)
 
 
 #define long_fetch_ecs_init(PLANE, NWORDS, DMA) \
-    uae_u16 *real_pt = (uae_u16 *)pfield_xlateptr (bpl[PLANE].pt + bpl[PLANE].off, NWORDS << 1); \
+    uae_u16 *real_pt = (uae_u16 *)pfield_xlateptr (bpl[PLANE].pt /*+ bpl[PLANE].off*/, NWORDS << 1); \
     int delay = toscr_delay[(PLANE & 1)]; \
     int tmp_nbits = out_nbits; \
     uae_u32 shiftbuffer = todisplay[PLANE][4]; \
@@ -847,7 +847,7 @@ static __inline__ void long_fetch_ecs_1(int plane, int nwords, int dma)
 
 STATIC_INLINE void long_fetch_aga (int plane, int nwords, int weird_number_of_bits, int fm, int dma)
 {
-	uae_u32 *real_pt = (uae_u32 *)pfield_xlateptr (bpl[plane].pt + bpl[plane].off, nwords * 2);
+	uae_u32 *real_pt = (uae_u32 *)pfield_xlateptr (bpl[plane].pt /*+ bpl[plane].off*/, nwords * 2);
 	int tmp_nbits = out_nbits;
 	uae_u32 outval = outword[plane];
 	uae_u32 fetchval0 = fetched_aga0[plane];
@@ -1049,7 +1049,7 @@ static void fetch(int nr, int FM)
 {
    if (nr < toscr_nr_planes)
    {
-      register uaecptr p = (bpl[nr].pt + bpl[nr].off)/*&0x000FFFFF*/;
+      register uaecptr p = (bpl[nr].pt /*+ bpl[nr].off*/)/*&0x000FFFFF*/;
       switch (FM) {
          case 0:
             fetched[nr] = CHIPMEM_WGET_CUSTOM (p);
@@ -3748,9 +3748,13 @@ void customreset (void)
 		res_bplcon0=0;
 		bplcon4 = 0x11; /* Get AGA chipset into ECS compatibility mode */
 		bplcon3 = 0xC00;
+		diwhigh = 0;
+		diwhigh_written = 0;
+		hdiwstate = DIW_waiting_start; // this does not reset at vblank
 		
 		FMODE (0);
 		CLXCON (0);
+		CLXCON2 (0);
 		lof = 0;
 	}
 		
@@ -3814,6 +3818,8 @@ void customreset (void)
 		
 		if (diwhigh)
 			diwhigh_written = 1;
+		else
+		  diwhigh_written = 0;
 		COPJMP (1);
 		v = bplcon0;
 		BPLCON0 (0, 0);
@@ -3950,6 +3956,7 @@ static __inline__ uae_u32 REGPARAM2 custom_wget_1 (uaecptr addr)
     extern int kickstart;
     
     switch (addr & 0x1FE) {
+     case 0x000: v = 0; break; /* BPLDDAT */
      case 0x002: v = DMACONR (); break;
      case 0x004: v = VPOSR (); break;
      case 0x006:
@@ -3970,6 +3977,7 @@ static __inline__ uae_u32 REGPARAM2 custom_wget_1 (uaecptr addr)
      case 0x010: v = ADKCONR (); break;
 
      case 0x012: v = POT0DAT (); break;
+     case 0x014: v = 0; break; /* POT1DAT not in use */
      case 0x016: v = POTGOR (); break;
      case 0x018: v = 0x3000 /* no data */; break;
      case 0x01A: v = DSKBYTR (current_hpos ()); break;
@@ -4043,22 +4051,26 @@ void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
      case 0x030: break;
      case 0x032: break;
      case 0x034: POTGO (value); break;
+     case 0x036: JOYTEST (value); break;
      case 0x040: BLTCON0 (value); break;
      case 0x042: BLTCON1 (value); break;
 
      case 0x044: BLTAFWM (value); break;
      case 0x046: BLTALWM (value); break;
 
-     case 0x050: BLTAPTH (value); break;
-     case 0x052: BLTAPTL (value); break;
-     case 0x04C: BLTBPTH (value); break;
-     case 0x04E: BLTBPTL (value); break;
      case 0x048: BLTCPTH (value); break;
      case 0x04A: BLTCPTL (value); break;
+     case 0x04C: BLTBPTH (value); break;
+     case 0x04E: BLTBPTL (value); break;
+     case 0x050: BLTAPTH (value); break;
+     case 0x052: BLTAPTL (value); break;
      case 0x054: BLTDPTH (value); break;
      case 0x056: BLTDPTL (value); break;
 
      case 0x058: BLTSIZE (value); break;
+     case 0x05A: BLTCON0L (value); break;
+     case 0x05C: BLTSIZV (value); break;
+     case 0x05E: BLTSIZH (value); break;
 
      case 0x064: BLTAMOD (value); break;
      case 0x062: BLTBMOD (value); break;
@@ -4142,6 +4154,7 @@ void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
 
      case 0x108: BPL1MOD (hpos, value); break;
      case 0x10A: BPL2MOD (hpos, value); break;
+     case 0x10C: BPLCON4 (hpos, value); break;
      case 0x10E: CLXCON2 (value); break;
 
      case 0x110: BPL1DAT (hpos, value); break;
@@ -4186,12 +4199,7 @@ void REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value)
     	 SPRxDATB (hpos, value, (addr - 0x146) / 8);
     	 break;
 
-     case 0x36: JOYTEST (value); break;
-     case 0x5A: BLTCON0L (value); break;
-     case 0x5C: BLTSIZV (value); break;
-     case 0x5E: BLTSIZH (value); break;
      case 0x1E4: DIWHIGH (hpos, value); break;
-     case 0x10C: BPLCON4 (hpos, value); break;
      case 0x1FC: FMODE (value); break;
     }
 }
@@ -4251,22 +4259,25 @@ uae_u8 *restore_custom (uae_u8 *src)
     audio_reset ();
 
     RL;				/* 000 chipset_mask */
-    RW;				/* 000 ? */
-    RW;				/* 002 DMACONR */
+    blt_info.bltddat = RW;	/* 000 BLTDDAT */
+    ru16 = RW;	    /* 002 DMACONR -> see also 096 */
+    if((ru16 & 0x4000) == 0)
+      bltstate = BLT_done;
+    blt_info.blitzero = (ru16 & 0x2000 ? 1 : 0);
     RW;				/* 004 VPOSR */
     RW;				/* 006 VHPOSR */
-    dskdatr = RW;		/* 008 DSKDATR */
+    RW;		          /* 008 DSKDATR returns always 0 in uae4all... */
     RW;				/* 00A JOY0DAT */
     RW;				/* 00C JOY1DAT */
     clxdat = RW;		/* 00E CLXDAT */
-    RW;				/* 010 ADKCONR */
-    RW;				/* 012 POT0DAT* */
-    RW;				/* 014 POT1DAT* */
-    RW;				/* 016 POTINP* */
+    RW;				      /* 010 ADKCONR -> see 09E */
+    RW;				      /* 012 POT0DAT */
+    RW;				      /* 014 POT1DAT */
+    RW;				      /* 016 POTGOR -> see 034 */
     RW;				/* 018 SERDATR* */
     dskbytr = RW;		/* 01A DSKBYTR */
-    RW;				/* 01C INTENAR */
-    RW;				/* 01E INTREQR */
+    RW;				      /* 01C INTENAR -> see 09A */
+    RW;				      /* 01E INTREQR -> see 09C */
     dskpt =  RL;			/* 020-022 DSKPT */
     dsklen = RW;		/* 024 DSKLEN */
     RW;				/* 026 DSKDAT */
@@ -4274,7 +4285,7 @@ uae_u8 *restore_custom (uae_u8 *src)
     lof = RW;			/* 02A VPOSW */
     RW;				/* 02C VHPOSW */
     ru16=RW; COPCON(ru16);	/* 02E COPCON */
-    RW;				/* 030 SERDAT* */
+    RW;				      /* 030 SERDAT */
     RW;				/* 032 SERPER* */
     ru16=RW; POTGO(ru16);		/* 034 POTGO */
     RW;				/* 036 JOYTEST* */
@@ -4291,20 +4302,20 @@ uae_u8 *restore_custom (uae_u8 *src)
     bltapt=RL; // u32=RL; BLTAPTH(u32);	/* 050-053 BLTAPT */
     bltdpt=RL; // u32=RL; BLTDPTH(u32);	/* 054-057 BLTDPT */
     RW;				/* 058 BLTSIZE */
-    RW;				/* 05A BLTCON0L */
-    ru16=RW; BLTSIZV(ru16);		/* 05C BLTSIZV */
-    RW;				/* 05E BLTSIZH */
-    ru16=RW; BLTCMOD(ru16);	/* 060 BLTCMOD */
-    ru16=RW; BLTBMOD(ru16);	/* 062 BLTBMOD */
-    ru16=RW; BLTAMOD(ru16);	/* 064 BLTAMOD */
-    ru16=RW; BLTDMOD(ru16);	/* 066 BLTDMOD */
+    RW;				      /* 05A BLTCON0L -> see 040 */
+    blt_info.vblitsize=RW;  /* 05C BLTSIZV */
+    blt_info.hblitsize=RW;	/* 05E BLTSIZH */
+    blt_info.bltcmod = RW;  /* 060 BLTCMOD */
+    blt_info.bltbmod = RW;  /* 062 BLTBMOD */
+    blt_info.bltamod = RW;  /* 064 BLTAMOD */
+    blt_info.bltdmod = RW;  /* 066 BLTDMOD */
     RW;				/* 068 ? */
     RW;				/* 06A ? */
     RW;				/* 06C ? */
     RW;				/* 06E ? */
-    ru16=RW; BLTCDAT(ru16);	/* 070 BLTCDAT */
+    blt_info.bltcdat =RW;   /* 070 BLTCDAT */
     ru16=RW; BLTBDAT(ru16);	/* 072 BLTBDAT */
-    ru16=RW; BLTADAT(ru16);	/* 074 BLTADAT */
+    blt_info.bltadat=RW;    /* 074 BLTADAT */
     RW;				/* 076 ? */
     RW;				/* 078 ? */
     RW;				/* 07A ? */
@@ -4312,9 +4323,9 @@ uae_u8 *restore_custom (uae_u8 *src)
     ru16=RW; DSKSYNC(ru16);	/* 07E DSKSYNC */
     cop1lc =  RL;		/* 080/082 COP1LC */
     cop2lc =  RL;		/* 084/086 COP2LC */
-    RW;				/* 088 ? */
-    RW;				/* 08A ? */
-    RW;				/* 08C ? */
+    RW;				      /* 088 COPJMP1 */
+    RW;				      /* 08A COPJMP2 */
+    RW;				      /* 08C COPINS */
     diwstrt = RW;		/* 08E DIWSTRT */
     diwstop = RW;		/* 090 DIWSTOP */
     ddfstrt = RW;		/* 092 DDFSTRT */
@@ -4325,6 +4336,7 @@ uae_u8 *restore_custom (uae_u8 *src)
     intreq = RW;		/* 09C INTREQ */
     adkcon = RW;		/* 09E ADKCON */
     SET_INTERRUPT();
+    /* 0A0 - 0DE Audio regs */
     for (i = 0; i < 8; i++)
 	bpl[i].pt = RL;
     bplcon0 = RW;		/* 100 BPLCON0 */
@@ -4334,11 +4346,12 @@ uae_u8 *restore_custom (uae_u8 *src)
     bpl1mod = RW;		/* 108 BPL1MOD */
     bpl2mod = RW;		/* 10A BPL2MOD */
     bplcon4 = RW;		/* 10C BPLCON4 */
-    clxcon2 = RW;		/* 10E CLXCON2* */
+    ru16=RW; CLXCON2(ru16);	/* 10E CLXCON2* */
     for(i = 0; i < 8; i++)
 	RW;			/*     BPLXDAT */
+	  /* 120 - 17E Sprite regs */
     for(i = 0; i < 32; i++)
-	current_colors.color_uae_regs_ecs[i] = RW; /* 180 COLORxx */
+	current_colors.color_uae_regs_ecs[i] = RW; /* 180-1BE COLORxx */
     RW;				/* 1C0 ? */
     RW;				/* 1C2 ? */
     RW;				/* 1C4 ? */
@@ -4358,7 +4371,7 @@ uae_u8 *restore_custom (uae_u8 *src)
 
     RW;				/* 1E0 ? */
     RW;				/* 1E2 ? */
-    RW;				/* 1E4 ? */
+    diwhigh = RW;				/* 1E4 DIWHIGH */
 
     RW;				/* 1E6 ? */
     RW;				/* 1E8 ? */
@@ -4393,8 +4406,8 @@ uae_u8 *save_custom (int *len)
     DISK_save_custom (&dskpt, &dsklen, &dsksync, &dskdatr, &dskbytr);
     dstbak = dst = (uae_u8 *)malloc (8+256*2);
     SL (0);			/* 000 chipset_mask */
-    SW (0);			/* 000 ? */
-    SW (dmacon);		/* 002 DMACONR */
+    SW (blt_info.bltddat);	/* 000 BLTDDAT */
+    SW (DMACONR());	  /* 002 DMACONR */
     SW (VPOSR());		/* 004 VPOSR */
     SW (VHPOSR());		/* 006 VHPOSR */
     SW (dskdatr);		/* 008 DSKDATR */
@@ -4429,9 +4442,9 @@ uae_u8 *save_custom (int *len)
     SW (blt_info.bltafwm);	/* 044 BLTAFWM */
     SW (blt_info.bltalwm);	/* 046 BLTALWM */
     SL (bltcpt);		/* 048-04B BLTCPT */
-    SL (bltbpt);		/* 04C-04F BLTCPT */
-    SL (bltapt);		/* 050-043 BLTCPT */
-    SL (bltdpt);		/* 054-057 BLTCPT */
+    SL (bltbpt);		  /* 04C-04F BLTBPT */
+    SL (bltapt);		  /* 050-043 BLTAPT */
+    SL (bltdpt);		  /* 054-057 BLTDPT */
     SW (0);			/* 058 BLTSIZE */
     SW (0);			/* 05A BLTCON0L (use BLTCON0 instead) */
     SW (blt_info.vblitsize);		/* 05C BLTSIZV */
@@ -4454,9 +4467,9 @@ uae_u8 *save_custom (int *len)
     SW (dsksync);		/* 07E DSKSYNC */
     SL (cop1lc);		/* 080-083 COP1LC */
     SL (cop2lc);		/* 084-087 COP2LC */
-    SW (0);			/* 088 ? */
-    SW (0);			/* 08A ? */
-    SW (0);			/* 08C ? */
+    SW (0);			      /* 088 COPJMP1 */
+    SW (0);			      /* 08A COPJMP2 */
+    SW (0);			      /* 08C COPINS */
     SW (diwstrt);		/* 08E DIWSTRT */
     SW (diwstop);		/* 090 DIWSTOP */
     SW (ddfstrt);		/* 092 DDFSTRT */
@@ -4466,6 +4479,7 @@ uae_u8 *save_custom (int *len)
     SW (intena);		/* 09A INTENA */
     SW (intreq);		/* 09C INTREQ */
     SW (adkcon);		/* 09E ADKCON */
+    /* 0A0 - 0DE Audio regs */
     for (i = 0; i < 8; i++)
 	SL (bpl[i].pt);		/* 0E0-0FE BPLxPT */
     SW (bplcon0);		/* 100 BPLCON0 */
@@ -4478,6 +4492,7 @@ uae_u8 *save_custom (int *len)
     SW (clxcon2);		/* 10E CLXCON2 */
     for (i = 0;i < 8; i++)
 	SW (0);			/* 110 BPLxDAT */
+	  /* 120 - 17E Sprite regs */
     for ( i = 0; i < 32; i++)
 	SW (current_colors.color_uae_regs_ecs[i]); /* 180-1BE COLORxx */
     SW (0);			/* 1C0 */
@@ -4499,7 +4514,7 @@ uae_u8 *save_custom (int *len)
 
     SW (0);			/* 1E0 */
     SW (0);			/* 1E2 */
-    SW (0);			/* 1E4 */
+    SW (diwhigh);			/* DIWHIGH */
 
     SW (0);			/* 1E6 */
     SW (0);			/* 1E8 */
