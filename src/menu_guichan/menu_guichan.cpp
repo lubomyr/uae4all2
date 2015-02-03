@@ -73,21 +73,31 @@ enum { DIRECTION_NONE, DIRECTION_UP, DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_R
 
 bool CheckKickstart()
 {
-    snprintf(romfile, 256, "%s/kickstarts/%s",launchDir,kickstarts_rom_names[kickstart]);
-    FILE *f=fopen (romfile, "r" );
-    if(f) {
-        fclose(f);
-        return true;
-    }
+    if (kickstart!=5) {
 #ifdef ANDROIDSDL
-    snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
-    f=fopen (romfile, "r" );
-    if(f) {
-        fclose(f);
-        return true;
-    }
+        snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+        FILE *f_afs=fopen (romfile, "r" );
+        if(f_afs) {
+            fclose(f_afs);
+            return true;
+        }
 #endif
-    return false;
+        snprintf(romfile, 256, "%s/kickstarts/%s",launchDir,kickstarts_rom_names[kickstart]);
+        FILE *f=fopen (romfile, "r" );
+        if(f) {
+            fclose(f);
+            return true;
+        }
+        return false;
+    } else {
+        snprintf(romfile, 256, custom_kickrom);
+        FILE *f=fopen (romfile, "r" );
+        if(f) {
+            fclose(f);
+            return true;
+        }
+        return false;
+    }
 }
 
 
@@ -95,7 +105,6 @@ namespace globals
 {
 gcn::Gui* gui;
 }
-
 
 namespace widgets
 {
@@ -113,7 +122,6 @@ extern gcn::Widget* activateAfterClose;
 
 gcn::TabbedArea* tabbedArea;
 }
-
 
 namespace sdl
 {
@@ -993,17 +1001,24 @@ int run_mainMenuGuichan()
         if (kickstart != oldkickstart) {
             bool bKickstartOk = true;
             oldkickstart = kickstart;
-            snprintf(romfile, 256, "%s/kickstarts/%s",launchDir,kickstarts_rom_names[kickstart]);
-            if(strlen(extended_rom_names[kickstart]) == 0)
-                snprintf(extfile, 256, "");
-            else
-                snprintf(extfile, 256, "%s/kickstarts/%s",launchDir,extended_rom_names[kickstart]);
-            bReloadKickstart = 1;
-            if(uae4all_init_rom(romfile) == -1) {
-#ifdef ANDROIDSDL
-                snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+            printf("kickstart=%d\n",kickstart);
+            if (kickstart==5) {
+                snprintf(romfile, 256, custom_kickrom);
                 uae4all_init_rom(romfile);
+                bReloadKickstart = 1;
+            } else {
+                snprintf(romfile, 256, "%s/kickstarts/%s",launchDir,kickstarts_rom_names[kickstart]);
+                if(strlen(extended_rom_names[kickstart]) == 0)
+                    snprintf(extfile, 256, "");
+                else
+                    snprintf(extfile, 256, "%s/kickstarts/%s",launchDir,extended_rom_names[kickstart]);
+                bReloadKickstart = 1;
+                if(uae4all_init_rom(romfile) == -1) {
+#ifdef ANDROIDSDL
+                    snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+                    uae4all_init_rom(romfile);
 #endif
+                }
             }
         }
         reset_hdConf();

@@ -26,20 +26,22 @@ NavigationMap navMap[] =
   { "AGA", "PandSpeed", "BlitterMode", "ECS", "Reset" },
 #else
   { "ECS", "FastMem", "AROS", "OCS", "AGA" },
-  { "AGA", "FastMem", "BM_normal", "ECS", "BM_normal" },
+  { "AGA", "BM_immediate", "CustomRom", "ECS", "BrowseROM" },
 #endif
 
   { "1.2", "68000", "7MHz", "tabbedArea", "1.3" },
   { "1.3", "68020", "14MHz", "1.2", "2.0" },
   { "2.0", "OCS", "28MHz", "1.3", "3.1" },
-  { "3.1", "OCS", "28MHz", "2.0", "AROS" },
 #if defined(PANDORA) && !(defined(WIN32) || defined(AROS))
+  { "3.1", "OCS", "28MHz", "2.0", "AROS" },
   { "AROS", "ECS", "PandSpeed", "3.1", "BlitterMode" },
 #endif
 #if defined(AROS) || defined(WIN32) || defined(ANDROIDSDL)
-  { "AROS", "ECS", "112MHz", "3.1", "BM_normal" },
+  { "3.1", "OCS", "56MHz", "2.0", "AROS" },
+  { "AROS", "ECS", "112MHz", "3.1", "CustomRom" },
 #endif
-
+  { "CustomRom", "AGA", "112MHz", "AROS", "BrowseROM" },
+  
   { "7MHz", "1.2", "ChipMem", "tabbedArea", "14MHz" },
   { "14MHz", "1.3", "ChipMem", "7MHz", "28MHz" },
 #if defined(PANDORA) && !(defined(WIN32) || defined(AROS))
@@ -48,10 +50,10 @@ NavigationMap navMap[] =
 #else
   { "28MHz", "2.0", "SlowMem", "14MHz", "56MHz" },
   { "56MHz", "3.1", "FastMem", "28MHz", "112MHz" },
-  { "112MHz", "AROS", "FastMem", "56MHz", "BM_immediate" },
-  { "BM_normal", "AGA", "BM_immediate", "AROS", "Reset" },
-  { "BM_immediate", "BM_normal", "BM_improved", "112MHz", "Reset" },
-  { "BM_improved", "BM_immediate", "FastMem", "112MHz", "Reset" },
+  { "112MHz", "AROS", "FastMem", "56MHz", "Reset" },
+  { "BM_normal", "CustomRom", "BM_immediate", "FastMem", "Save Config" },
+  { "BM_immediate", "BM_normal", "AGA", "FastMem", "BM_improved" },
+  { "BM_improved", "BM_normal", "BrowseROM", "BM_immediate", "A500" },
 #endif
 
   { "PandSpeed", "AROS", "ECS", "---", "---" },
@@ -61,9 +63,10 @@ NavigationMap navMap[] =
 #if defined(PANDORA) && !(defined(WIN32) || defined(AROS))
   { "FastMem", "---", "---", "SlowMem", "PandSpeed" },
 #else
-  { "FastMem", "---", "---", "SlowMem", "Save Config" },
+  { "FastMem", "---", "---", "SlowMem", "BM_normal" },
 #endif
-
+  { "BrowseROM", "AGA", "BM_normal", "CustomRom", "Reset" },
+  
   // Tab Floppy Drive
   { "DF0", "Drives1", "ejectDF0", "tabbedArea", "DF1" },
   { "DF1", "Drives2", "ejectDF1", "DF0", "DF2" },

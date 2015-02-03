@@ -22,6 +22,8 @@
 #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
 #endif
 
+bool confirmselection = false;
+
 #define extterms files[q].size()>=4 && files[q].substr(files[q].size()-4)
 #define floppyterms extterms!=".adf" && extterms!=".ADF" && extterms!=".Adf" && extterms!=".adz" && extterms!=".ADZ" && extterms!=".Adz" && extterms!="f.gz" && extterms!="F.GZ" && extterms!=".bz2" && extterms!=".BZ2" && extterms!=".Bz2" && extterms!=".zip" && extterms!=".ZIP" && extterms!=".Zip" && extterms!=".RP9" && extterms!=".rp9"
 #define hddirterms extterms!=".hdf" && extterms!=".HDF" && extterms!=".Hdf"
@@ -237,6 +239,7 @@ public:
             strcat(filename, currentDir);
         strcat(filename, "/");
         strcat(filename, dirList.getElementAt(selected_item).c_str());
+        confirmselection=true;
         checkfilename(filename);
     }
 };
@@ -263,6 +266,7 @@ public:
             mainMenu_bootHD = 1;
             loadconfig(2);
         }
+        confirmselection=true;
         unraise_loadMenu_guichan();
     }
 };
@@ -306,6 +310,7 @@ class ListBoxActionListener : public gcn::ActionListener
 {
 public:
     void action(const gcn::ActionEvent& actionEvent) {
+        confirmselection=false;
 #if defined(WIN32) || defined(ANDROIDSDL) || defined(AROS) || defined(RASPBERRY)
         if (menu_load_type != MENU_LOAD_HD_DIR) {
 #endif
@@ -546,6 +551,8 @@ static int menuLoadLoop(char *curr_path)
         window_load->setCaption("       Select .HDF-file       ");
     else if (menu_load_type == MENU_LOAD_CONFIG)
         window_load->setCaption("       Select Config-file       ");
+    else if (menu_load_type == MENU_LOAD_KICKROM)
+        window_load->setCaption("       Select Kickstart Rom-file       ");
     else if (current_drive==0)
         window_load->setCaption(" Insert .ADF or .ADZ into DF0 ");
     else if (current_drive==1)
@@ -590,6 +597,8 @@ void checkfilename (char *currentfilename)
             reset_hdConf();
             mainMenu_bootHD = 2;
             loadconfig(2);
+        } else if (menu_load_type == MENU_LOAD_KICKROM) {
+            strcpy(custom_kickrom, currentfilename);
         } else if (current_drive==0) {
             strcpy(uae4all_image_file0, currentfilename);
             // Check for disk-specific config
@@ -607,8 +616,8 @@ void checkfilename (char *currentfilename)
             strcpy(uae4all_image_file2, currentfilename);
         else if (current_drive==3)
             strcpy(uae4all_image_file3, currentfilename);
-
-        unraise_loadMenu_guichan();
+        if (confirmselection)
+            unraise_loadMenu_guichan();
     }
 }
 }

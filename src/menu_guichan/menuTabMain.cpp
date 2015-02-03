@@ -26,17 +26,20 @@
 
 extern int kickstart;
 extern int blitter_in_partial_mode;
-
+extern char currentDir[300];
+extern void extractFileName(char * str,char *buffer);
 
 namespace widgets
 {
 void show_settings_TabMain(void);
+void run_menuLoad_guichan(char *curr_path, int aLoadType);
 
 extern gcn::Color baseCol;
 extern gcn::Color baseColLabel;
 extern gcn::Container* top;
 extern gcn::TabbedArea* tabbedArea;
 extern gcn::Icon* icon_winlogo;
+extern gcn::Widget* activateAfterClose;
 
 #ifdef ANDROIDSDL
 extern gcn::contrib::SDLTrueTypeFont* font2;
@@ -67,6 +70,9 @@ gcn::UaeRadioButton* radioButton_kick13;
 gcn::UaeRadioButton* radioButton_kick20;
 gcn::UaeRadioButton* radioButton_kick31;
 gcn::UaeRadioButton* radioButton_aros;
+gcn::UaeRadioButton* radioButton_custrom;
+gcn::Button* button_kickrom;
+gcn::TextField* textField_kickrom;
 gcn::Window *group_cpuspeed;
 gcn::UaeRadioButton* radioButton_cpuspeed_7Mhz;
 gcn::UaeRadioButton* radioButton_cpuspeed_14Mhz;
@@ -221,6 +227,8 @@ public:
             kickstart=3;
         else if (actionEvent.getSource() == radioButton_aros)
             kickstart=4;
+        else if (actionEvent.getSource() == radioButton_custrom)
+            kickstart=5;
     }
 };
 KickstartButtonActionListener* kickstartButtonActionListener;
@@ -279,6 +287,18 @@ public:
 PandSpeedActionListener* pandSpeedActionListener;
 #endif
 
+class KickromButtonActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        if (actionEvent.getSource() == button_kickrom) {
+            kickstart=5;
+            activateAfterClose = button_kickrom;
+            run_menuLoad_guichan(currentDir, MENU_LOAD_KICKROM);
+        }
+    }
+};
+KickromButtonActionListener* kickromButtonActionListener;
 
 void menuTabMain_Init()
 {
@@ -352,7 +372,7 @@ void menuTabMain_Init()
     radioButton_bm_immediate->setPosition(75,10);
     radioButton_bm_immediate->setId("BM_immediate");
     radioButton_bm_improved = new gcn::UaeRadioButton("improv.", "radioblittergroup");
-    radioButton_bm_improved->setPosition(155,10);
+    radioButton_bm_improved->setPosition(75,35);
     radioButton_bm_improved->setId("BM_improved");
 #ifdef ANDROIDSDL
     radioButton_bm_normal->setFont(font2);
@@ -365,12 +385,12 @@ void menuTabMain_Init()
     radioButton_bm_improved->addActionListener(blitterModeActionListener);
 
     group_blitmode = new gcn::Window("Blitter mode");
-    group_blitmode->setPosition(105,210);
+    group_blitmode->setPosition(425,190);
     group_blitmode->add(radioButton_bm_normal);
     group_blitmode->add(radioButton_bm_immediate);
     group_blitmode->add(radioButton_bm_improved);
     group_blitmode->setMovable(false);
-    group_blitmode->setSize(240,55);
+    group_blitmode->setSize(160,80);
     group_blitmode->setBaseColor(baseCol);
 #endif
 
@@ -390,12 +410,16 @@ void menuTabMain_Init()
     radioButton_aros = new gcn::UaeRadioButton("Aros", "radiokickgroup");
     radioButton_aros->setPosition(5,130);
     radioButton_aros->setId("AROS");
+    radioButton_custrom = new gcn::UaeRadioButton("Cust.", "radiokickgroup");
+    radioButton_custrom->setPosition(5,160);
+    radioButton_custrom->setId("CustomRom");
     kickstartButtonActionListener = new KickstartButtonActionListener();
     radioButton_kick12->addActionListener(kickstartButtonActionListener);
     radioButton_kick13->addActionListener(kickstartButtonActionListener);
     radioButton_kick20->addActionListener(kickstartButtonActionListener);
     radioButton_kick31->addActionListener(kickstartButtonActionListener);
     radioButton_aros->addActionListener(kickstartButtonActionListener);
+    radioButton_custrom->addActionListener(kickstartButtonActionListener);
     group_kickstart = new gcn::Window("Kickstart");
     group_kickstart->setPosition(105,20);
     group_kickstart->add(radioButton_kick12);
@@ -403,9 +427,25 @@ void menuTabMain_Init()
     group_kickstart->add(radioButton_kick20);
     group_kickstart->add(radioButton_kick31);
     group_kickstart->add(radioButton_aros);
+    group_kickstart->add(radioButton_custrom);
     group_kickstart->setMovable(false);
-    group_kickstart->setSize(80,175);
+    group_kickstart->setSize(80,210);
     group_kickstart->setBaseColor(baseCol);
+
+    // Browse Kickstart ROM
+    button_kickrom = new gcn::Button("Browse ROM");
+    button_kickrom->setSize(90,22);
+    button_kickrom->setPosition(105,243);
+    button_kickrom->setBaseColor(baseCol);
+    button_kickrom->setId("BrowseROM");
+    kickromButtonActionListener = new KickromButtonActionListener();
+    button_kickrom->addActionListener(kickromButtonActionListener);
+    textField_kickrom = new gcn::TextField("Select custom Kickstart ROM                                                ");
+    textField_kickrom->setSize(210,22);
+    textField_kickrom->setPosition(200,243);
+    textField_kickrom->setEnabled(false);
+    textField_kickrom->setBaseColor(baseCol);
+
 
     // Select CPU speed
     radioButton_cpuspeed_7Mhz = new gcn::UaeRadioButton("7MHz", "radiocpuspeedgroup");
@@ -573,6 +613,8 @@ void menuTabMain_Init()
     tab_main->add(group_blitmode);
 #endif
     tab_main->add(group_kickstart);
+    tab_main->add(button_kickrom);
+    tab_main->add(textField_kickrom);
     tab_main->add(group_cpuspeed);
     tab_main->add(window_memory);
 #if defined(PANDORA) && !(defined(AROS) || defined(WIN32))
@@ -610,6 +652,9 @@ void menuTabMain_Exit()
     delete radioButton_kick20;
     delete radioButton_kick31;
     delete radioButton_aros;
+    delete radioButton_custrom;
+    delete button_kickrom;
+    delete textField_kickrom;
     delete group_cpuspeed;
     delete radioButton_cpuspeed_7Mhz;
     delete radioButton_cpuspeed_14Mhz;
@@ -691,6 +736,8 @@ void show_settings_TabMain()
         radioButton_kick31->setSelected(true);
     else if (kickstart==4)
         radioButton_aros->setSelected(true);
+    else if (kickstart==5)
+        radioButton_custrom->setSelected(true);
 
     if (mainMenu_CPU_speed==0)
         radioButton_cpuspeed_7Mhz->setSelected(true);
@@ -704,6 +751,9 @@ void show_settings_TabMain()
     else if (mainMenu_CPU_speed==4)
         radioButton_cpuspeed_112Mhz->setSelected(true);
 #endif
+    static char tmpKickRom[256];
+    extractFileName(custom_kickrom, tmpKickRom);
+    textField_kickrom->setText(tmpKickRom);
 
     const char *ChipMem_list[] = { "512Kb", "1Mb", "2Mb", "4Mb", "8Mb" };
     const char *SlowMem_list[] = { "None", "512Kb", "1Mb", "1.5Mb", "1.8Mb" };

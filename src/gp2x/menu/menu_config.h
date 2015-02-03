@@ -99,4 +99,5 @@ extern int mainMenu_FloatingJoystick;
 #if defined(ANDROIDSDL) || defined(AROS)
 extern int mainMenu_vsync;
 #endif
+extern char custom_kickrom[256];
 #endif
