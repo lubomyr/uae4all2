@@ -108,8 +108,6 @@ extern int maxhpos, maxvpos, minfirstline, vblank_endline, numscrlines;
 #define DMA_MASTER    0x0200
 #define DMA_BLITPRI   0x0400
 
-extern unsigned long frametime, timeframes;
-
 /* 100 words give you 1600 horizontal pixels. Should be more than enough for
  * superhires. Don't forget to update the definition in genp2c.c as well.
  * needs to be larger for superhires support */
@@ -133,6 +131,8 @@ extern int bpl_off[8];
 #define GET_SPRITEWIDTH(FMODE) ((((FMODE) >> 2) & 3) == 3 ? 64 : (((FMODE) >> 2) & 3) == 0 ? 16 : 32)
 /* Compute the number of bitplanes from a value written to BPLCON0  */
 #define GET_PLANES(x) ((((x) >> 12) & 7) | (((x) & 0x10) >> 1))
+
+extern void fpscounter_reset (void);
 
 extern unsigned int beamcon0, new_beamcon0;
 #endif

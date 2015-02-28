@@ -35,6 +35,7 @@ struct gui_info
     uae_u8 drive_writing[4];        /* drive is writing */
     uae_u8 powerled;                /* state of power led */
     uae_u8 hdled;					/* state of hard disk access */
+    uae_u16 fps;
 };
 
 #ifndef _GUI_CPP

@@ -155,7 +155,6 @@ int gui_init (void)
 		emulating=1;
 		getChanges();
 		check_all_prefs();
-		reset_frameskip();
 		return 0;
     }
     return -1;
@@ -391,6 +390,7 @@ static void goMenu(void)
     }
     check_all_prefs();
     gui_purge_events();
+    fpscounter_reset();
     notice_screen_contents_lost();
 }
 
@@ -535,7 +535,7 @@ void gui_handle_events (void)
 	}
 	else if(justLK)
 		justLK=0;
-	// Quick Switch - textUI virtual keyboard via buttonB+buttonY
+	//Quick Switch - textUI virtual keyboard via buttonB+buttonY
 	if((mainMenu_quickSwitch==1) && buttonB && buttonY)
 	{
 		if(!justLK)
@@ -760,7 +760,6 @@ if(!vkbd_mode)
 			mainMenu_frameskip ? mainMenu_frameskip = 0 : mainMenu_frameskip = 1;
 			getChanges();
 			check_all_prefs();
-			reset_frameskip();
 		}
 
 		//Q key

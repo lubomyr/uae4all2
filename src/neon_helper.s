@@ -48,8 +48,7 @@ ARM_Read_Word:
   bxeq      lr
   eor       r3, r0, #1
   ldr       r1, [r2, r3]
-  mov       r2, r1, ror #24
-  uxth      r0, r2
+  uxth      r0, r1, ror #24
   bx        lr
 
 

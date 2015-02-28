@@ -20,9 +20,6 @@
 #ifndef M68K_OK
     #define M68K_OK 0
 #endif
-#ifndef M68K_RUNNING
-    #define M68K_RUNNING 1
-#endif
 #ifndef M68K_NO_SUP_ADDR_SPACE
     #define M68K_NO_SUP_ADDR_SPACE 2
 #endif
@@ -192,7 +189,7 @@ extern "C" {
 /* General purpose functions */
 void     m68k_init(int force_table);
 unsigned m68k_reset(void);
-unsigned m68k_emulate(int n);
+void     m68k_emulate(int n);
 unsigned m68k_get_pc(void);
 int      m68k_fetch(unsigned address);
 

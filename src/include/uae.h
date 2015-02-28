@@ -13,7 +13,7 @@ extern void leave_program (void);
 extern void real_main (int, char **);
 extern void usage (void);
 
-#define NUM_DRIVES 2
+#define NUM_DRIVES 4
 
 
 extern void uae_reset (void);

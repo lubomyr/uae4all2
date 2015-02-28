@@ -64,6 +64,8 @@ int no_gui = 0;
 int joystickpresent = 0;
 int cloanto_rom = 0;
 
+int64_t g_uae_epoch = 0;
+
 struct gui_info gui_data;
 
 char warning_buffer[256];
@@ -172,7 +174,6 @@ void reset_all_systems (void)
 void do_start_program (void)
 {
 	quit_program = 2;
-	reset_frameskip();
 	m68k_go (1);
 }
 
@@ -211,6 +212,10 @@ void real_main (int argc, char **argv)
 #endif
 	);
 #endif
+  // Initialize timebase
+  g_uae_epoch = read_processor_time();
+  syncbase = 1000000; // Microseconds
+
 	getcwd(launchDir,250);
     /* PocketUAE prefs */
     default_prefs_uae (&currprefs);

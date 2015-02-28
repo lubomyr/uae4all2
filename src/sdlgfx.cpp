@@ -44,6 +44,8 @@
 #include "menu_config.h"
 #include "menu.h"
 #include "savestate.h"
+#include "rpt.h"
+#include "events.h"
 
 bool mouse_state = true;
 bool slow_mouse = false;
@@ -101,11 +103,14 @@ static int ncolors = 0;
 
 /* Keyboard and mouse */
 int uae4all_keystate[256];
-#if defined(PANDORA) || defined(ANDROIDSDL)
 static int shiftWasPressed = 0;
+#ifdef PANDORA
 #define SIMULATE_SHIFT 0x200
 #define SIMULATE_RELEASED_SHIFT 0x400
 #endif
+
+static unsigned long previous_synctime = 0;
+static unsigned long next_synctime = 0;
 
 void flush_block ()
 {
@@ -123,7 +128,21 @@ void flush_block ()
 		if (savestate_state == STATE_DOSAVE)
 		  CreateScreenshot(SCREENSHOT);
 #endif
-		SDL_Flip(prSDLScreen);
+    unsigned long start = read_processor_time();
+    if(start < next_synctime && next_synctime - start > time_per_frame - 1000)
+      usleep((next_synctime - start) - 1000);
+    SDL_Flip(prSDLScreen);
+	  last_synctime = read_processor_time();
+    
+    if(last_synctime - next_synctime > time_per_frame - 1000)
+      adjust_idletime(0);
+    else
+      adjust_idletime(next_synctime - start);
+    
+    if(last_synctime - next_synctime > time_per_frame - 5000)
+      next_synctime = last_synctime + time_per_frame * (1 + prefs_gfx_framerate);
+    else
+      next_synctime = next_synctime + time_per_frame * (1 + prefs_gfx_framerate);
 	}
 	SDL_LockSurface (prSDLScreen);
 
@@ -282,9 +301,7 @@ int graphics_init (void)
 
 static void graphics_subshutdown (void)
 {
-#ifndef AROS
     SDL_FreeSurface(prSDLScreen);
-#endif
 }
 
 void graphics_leave (void)

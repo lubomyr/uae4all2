@@ -74,7 +74,7 @@ void read_joystick(int nr, unsigned int *dir, int *button)
     nr = (~nr)&0x1;
 
     SDL_JoystickUpdate ();
-
+/* Temporary disabled
 #ifdef ANDROIDSDL
     if (nr_joysticks > 2)
     {
@@ -83,15 +83,14 @@ void read_joystick(int nr, unsigned int *dir, int *button)
 	axis1 = SDL_JoystickGetAxis(uae4all_joy2, 1);
 	axis2 = SDL_JoystickGetAxis(uae4all_joy2, 2);
 	axis3 = SDL_JoystickGetAxis(uae4all_joy2, 3);
-//	__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2", "joy2: axis0 axis1 %d %d", axis0, axis1);
-//	__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2", "joy2: axis2 axis3 %d %d", axis2, axis3);
+
 	if ((axis0 > 512) || (axis2 > 512)) right=1;
 	if ((axis0 < -512) || (axis2 < -512)) left=1;
 	if ((axis1 < -512) || (axis3 < -512)) top=1;
 	if ((axis1 > 512) || (axis3 > 512)) bot=1;
 }
 #endif
-
+*/
 	int mouseScale = mainMenu_mouseMultiplier * 4;
 	if (mouseScale > 99)
 		mouseScale /= 100;
@@ -317,10 +316,10 @@ void init_joystick(void)
 		uae4all_joy1 = SDL_JoystickOpen (1);
     else
 		uae4all_joy1 = NULL; 
-    if (nr_joysticks > 2)
+/*    if (nr_joysticks > 2)
 		uae4all_joy2 = SDL_JoystickOpen (2);
     else
-		uae4all_joy2 = NULL;
+		uae4all_joy2 = NULL;*/
 }
 
 void close_joystick(void)
@@ -329,6 +328,6 @@ void close_joystick(void)
 	SDL_JoystickClose (uae4all_joy0);
     if (nr_joysticks > 1)
 	SDL_JoystickClose (uae4all_joy1);
-    if (nr_joysticks > 2)
-	SDL_JoystickClose (uae4all_joy2);
+/*    if (nr_joysticks > 2)
+	SDL_JoystickClose (uae4all_joy2);*/
 }

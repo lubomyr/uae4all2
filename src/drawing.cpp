@@ -9,7 +9,6 @@
   */
 
 #define UNROLL_PFIELD
-#define UNROLL_DRAW_SPRITES
 
 /* There are a couple of concepts of "coordinates" in this file.
    - DIW coordinates
@@ -51,8 +50,6 @@
 #include <time.h>
 #include "menu_config.h"
 #include "menu.h"
-
-static int fps_counter = 0, fps_counter_changed = 0;
 
 #ifdef USE_DRAWING_EXTRA_INLINE
 #define _INLINE_ __inline__
@@ -116,8 +113,11 @@ static int dblpf_ind1[256], dblpf_ind2[256];
 static int dblpf_2nd1[256], dblpf_2nd2[256];
 static int dblpf_ind1_aga[256], dblpf_ind2_aga[256];
 static int dblpfofs[] = { 0, 2, 4, 8, 16, 32, 64, 128 };
-static int sprite_offs[256];
 static uae_u32 clxtab[256];
+
+static int sprite_col_nat[65536];
+static int sprite_col_at[65536];
+static int sprite_bit[65536];
 
 /* Video buffer description structure. Filled in by the graphics system
  * dependent code. */
@@ -185,180 +185,44 @@ static int sbasecol[2];
 
 int framecnt = 0, fs_framecnt = 0;
 
-extern Uint32 uae4all_numframes;
+/* Calculate idle time (time to wait for vsync) */
+int idletime_frames = 0;
+unsigned long idletime_time = 0;
+int idletime_percent = 0;
+#define IDLETIME_FRAMES 25
+unsigned long time_per_frame = 20000; // Default for PAL (50 Hz): 20000 ns
 
-uint64_t ticksPerFrame = 0;
-static uint64_t lastTick = -1;
-static int skipped_frames = 0;
-
-
-void reset_frameskip(void)
+void adjust_idletime(unsigned long ns_waited)
 {
-	// will reset ticks automatically
-	ticksPerFrame = 0;
-	skipped_frames = 0;
+  idletime_frames++;
+  idletime_time += ns_waited;
+  if(idletime_frames >= IDLETIME_FRAMES)
+  {
+    unsigned long ns_per_frames = time_per_frame * idletime_frames * (1 + prefs_gfx_framerate);
+    idletime_percent = idletime_time * 100 / ns_per_frames;
+    if(idletime_percent < 0)
+      idletime_percent = 0;
+    else if(idletime_percent > 100)
+      idletime_percent = 100;
+    idletime_time = 0;
+    idletime_frames = 0;
+  }
 }
 
-
-
-static void fps_counter_upd(void)
-{
-	struct timeval tv;
-	static int thissec, fcount;
-
-	gettimeofday(&tv, 0);
-	if (tv.tv_sec != thissec)
-	{
-		thissec = tv.tv_sec;
-		fps_counter = fcount;
-		fcount = 0;
-		fps_counter_changed = 1;
-	}
-	else
-	{
-		fps_counter_changed = 0;
-	}
-	fcount++;
-}
-
-
-#define getTime10MicroSec() (uint64_t( tv.tv_sec ) * 100000 + tv.tv_usec / 10)
 static __inline__ void count_frame (void)
 {
-  uint64_t tick;
-	struct timeval tv;
-
-	gettimeofday(&tv, 0);
-	if(ticksPerFrame == 0)
-	{
-		ticksPerFrame = 100000 / ((beamcon0 & 0x20) ? 50 : 60);
-		lastTick = getTime10MicroSec();
-		skipped_frames = 0;
-	}
-
-  uae4all_numframes++;
-
 	switch(prefs_gfx_framerate)
 	{
 		case 0: // draw every frame (Limiting is done by waiting for vsync...)
-#if defined(ANDROIDSDL) || defined(AROS)
-			if (mainMenu_vsync)
-#endif
-			  fs_framecnt = 0;
-#if defined(ANDROIDSDL) || defined(AROS)
-			else
-			{
-			  // Limiter
-			  while(getTime10MicroSec() < lastTick + ticksPerFrame)
-			  {
-				  usleep(100);
-				  gettimeofday(&tv, 0);
-			  }
-			  lastTick += ticksPerFrame;
-			}
-#endif
+			fs_framecnt = 0;
 			break;
 			
 		case 1: // draw every second frame
 			fs_framecnt++;
 			if (fs_framecnt > 1)
 				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-#ifdef ANDROIDSDL
-		case 2: // draw every third frame
-			fs_framecnt++;
-			if (fs_framecnt > 2)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 3: // draw every fourth frame
-			fs_framecnt++;
-			if (fs_framecnt > 3)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 4: // draw every fifth frame
-			fs_framecnt++;
-			if (fs_framecnt > 4)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 5: // draw every sixth frame
-			fs_framecnt++;
-			if (fs_framecnt > 5)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 6: // draw every seventh frame
-			fs_framecnt++;
-			if (fs_framecnt > 6)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 7: // draw every eighth frame
-			fs_framecnt++;
-			if (fs_framecnt > 7)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-		case 8: // draw every ninth frame
-			fs_framecnt++;
-			if (fs_framecnt > 8)
-				fs_framecnt = 0;
-			// Limiter
-			while(getTime10MicroSec() < lastTick + ticksPerFrame - 500)
-			{
-				usleep(100);
-				gettimeofday(&tv, 0);
-			}
-			lastTick += ticksPerFrame;
-			break;
-#endif
-	}
-	
+      break;  
+   }
 }
 
 int coord_native_to_amiga_x (int x)
@@ -827,8 +691,6 @@ static __inline__ void gen_pfield_tables (void)
 		dblpf_ind1[i] = i >= 128 ? i & 0x7F : (plane1 == 0 ? plane2 : plane1);
 		dblpf_ind2[i] = i >= 128 ? i & 0x7F : (plane2 == 0 ? plane1 : plane2);
 
-		sprite_offs[i] = (i & 15) ? 0 : 2;
-
 		clxtab[i] = ((((i & 3) && (i & 12)) << 9)
 				| (((i & 3) && (i & 48)) << 10)
 				| (((i & 3) && (i & 192)) << 11)
@@ -836,134 +698,42 @@ static __inline__ void gen_pfield_tables (void)
 				| (((i & 12) && (i & 192)) << 13)
 				| (((i & 48) && (i & 192)) << 14));
 	}
+
+  for(i=0; i<65536; ++i)
+  {
+    sprite_col_nat[i] = 
+      (i & 0x0003) ? ((i >> 0) & 3) + 0 :
+      (i & 0x000C) ? ((i >> 2) & 3) + 0 :
+      (i & 0x0030) ? ((i >> 4) & 3) + 4 :
+      (i & 0x00C0) ? ((i >> 6) & 3) + 4 :
+      (i & 0x0300) ? ((i >> 8) & 3) + 8 :
+      (i & 0x0C00) ? ((i >> 10) & 3) + 8 :
+      (i & 0x3000) ? ((i >> 12) & 3) + 12 :
+      (i & 0xC000) ? ((i >> 14) & 3) + 12 : 0;
+    sprite_col_at[i] =
+      (i & 0x000F) ? ((i >> 0) & 0x000F) :
+      (i & 0x00F0) ? ((i >> 4) & 0x000F) :
+      (i & 0x0F00) ? ((i >> 8) & 0x000F) :
+      (i & 0xF000) ? ((i >> 12) & 0x000F) : 0;
+    sprite_bit[i] = 
+      (i & 0x0003) ? 0x01 : 
+      (i & 0x000C) ? 0x02 : 
+      (i & 0x0030) ? 0x04 :
+      (i & 0x00C0) ? 0x08 :
+      (i & 0x0300) ? 0x10 :
+      (i & 0x0C00) ? 0x20 :
+      (i & 0x3000) ? 0x40 :
+      (i & 0xC000) ? 0x80 : 0;
+  }
 }
-
-#ifndef UNROLL_DRAW_SPRITES
-
-static __inline__ void draw_sprites_1 (struct sprite_entry *_GCCRES_ e, int dualpf,
-				   int doubling, int has_attach)
-{
-    int *shift_lookup = dualpf ? (bpldualpfpri ? dblpf_ms2 : dblpf_ms1) : dblpf_ms;
-    uae_u16 *buf = spixels + e->first_pixel;
-    uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
-    int pos, window_pos;
-    register unsigned char change = line_changes[active_line];
-    uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
-
-    buf -= e->pos;
-    stbuf -= e->pos;
-
-    window_pos = e->pos + ((DIW_DDF_OFFSET - DISPLAY_LEFT_SHIFT) );
-    if (doubling)
-	window_pos <<= 1;
-    window_pos += pixels_offset;
-    for (pos = e->pos; pos < e->max; pos += 1) {
-	int maskshift, plfmask;
-	unsigned int v = buf[pos];
-
-	maskshift = shift_lookup[pixdata.apixels[window_pos]];
-	plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
-	v &= ~plfmask;
-	if (v != 0) {
-	    unsigned int vlo, vhi, col;
-	    unsigned int v1 = v & 255;
-	    int offs;
-
-	    /* If non-transparent pixel is drawn in previously unchanged line,
-        * that line has to be redrawn as well.
-        */
-       if (!change) {
-          change = 1;
-          pfield_draw_line_1 ();
-       }
-
-	    if (v1 == 0)
-		offs = 4 + sprite_offs[v >> 8];
-	    else
-		offs = sprite_offs[v1];
-
-	    v >>= offs << 1;
-	    v &= 15;
- 
-	    if (has_attach && (stbuf[pos] & (1 << offs))) {
-		col = v;
-		    col += 16;
-	    } else {
-		vlo = v & 3;
-		vhi = (v & (vlo - 1)) >> 2;
-		col = (vlo | vhi);
-		    col += 16;
-		col += (offs << 1);
-	    }
-	    if (dualpf) {
-		    col += 128;
-		    if (doubling)
-			pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
-		    else
-			pixdata.apixels[window_pos] = col;
-	    } else {
-		if (doubling)
-		    pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
-		else
-		    pixdata.apixels[window_pos] = col;
-	    }
-	}
-	window_pos += 1 << doubling;
-    }
-    line_changes_sprites = change;
-}
-
-#define draw_sprites_normal_sp_lo_nat(ENTRY) draw_sprites_1	(ENTRY, 0, 0, 0)
-#define draw_sprites_normal_dp_lo_nat(ENTRY) draw_sprites_1	(ENTRY, 1, 0, 0)
-#define draw_sprites_normal_sp_lo_at(ENTRY)  draw_sprites_1	(ENTRY, 0, 0, 1)
-#define draw_sprites_normal_dp_lo_at(ENTRY)  draw_sprites_1	(ENTRY, 1, 0, 1)
-#define draw_sprites_normal_sp_hi_nat(ENTRY) draw_sprites_1	(ENTRY, 0, 1, 0)
-#define draw_sprites_normal_dp_hi_nat(ENTRY) draw_sprites_1	(ENTRY, 1, 1, 0)
-#define draw_sprites_normal_sp_hi_at(ENTRY)  draw_sprites_1	(ENTRY, 0, 1, 1)
-#define draw_sprites_normal_dp_hi_at(ENTRY)  draw_sprites_1	(ENTRY, 1, 1, 1)
-
-#define decide_draw_sprites()
-
-static __inline__ void draw_sprites_ecs (struct sprite_entry *_GCCRES_ e)
-{
-    uae4all_prof_start(12);
-    if (e->has_attached)
-	if (bplres == 1)
-		if (bpldualpf)
-		    draw_sprites_normal_dp_hi_at (e);
-		else
-		    draw_sprites_normal_sp_hi_at (e);
-	else
-		if (bpldualpf)
-		    draw_sprites_normal_dp_lo_at (e);
-		else
-		    draw_sprites_normal_sp_lo_at (e);
-    else
-	if (bplres == 1)
-		if (bpldualpf)
-		    draw_sprites_normal_dp_hi_nat (e);
-		else
-		    draw_sprites_normal_sp_hi_nat (e);
-	else
-		if (bpldualpf)
-		    draw_sprites_normal_dp_lo_nat (e);
-		else
-		    draw_sprites_normal_sp_lo_nat (e);
-    uae4all_prof_end(12);
-}
-
-#else
 
 static void draw_sprites_normal_sp_lo_nat(struct sprite_entry *_GCCRES_ e)
 {
    int *shift_lookup = dblpf_ms;
    uae_u16 *buf = spixels + e->first_pixel;
-   uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
-   stbuf -= e->pos;
 
    window_pos = e->pos + ((DIW_DDF_OFFSET - DISPLAY_LEFT_SHIFT) );
    window_pos += pixels_offset;
@@ -976,23 +746,11 @@ static void draw_sprites_normal_sp_lo_nat(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-         v >>= offs << 1;
-         v &= 15;
-         vlo = v & 3;
-         vhi = (v & (vlo - 1)) >> 2;
-         col = (vlo | vhi);
-         col += 16;
-         col += (offs << 1);
-         pixdata.apixels[window_pos] = col;
+        unsigned int col;
+        col = sprite_col_nat[v] + 16;
+        pixdata.apixels[window_pos] = col;
       }
-      window_pos ++;
+      window_pos++;
    }
 }
 
@@ -1000,12 +758,9 @@ static void draw_sprites_normal_dp_lo_nat(struct sprite_entry *_GCCRES_ e)
 {
    int *shift_lookup = (bpldualpfpri ? dblpf_ms2 : dblpf_ms1);
    uae_u16 *buf = spixels + e->first_pixel;
-   uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
-   stbuf -= e->pos;
 
    window_pos = e->pos + ((DIW_DDF_OFFSET - DISPLAY_LEFT_SHIFT) );
    window_pos += pixels_offset;
@@ -1018,24 +773,9 @@ static void draw_sprites_normal_dp_lo_nat(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         vlo = v & 3;
-         vhi = (v & (vlo - 1)) >> 2;
-         col = (vlo | vhi);
-         col += 16;
-         col += (offs << 1);
-         col += 128;
-         pixdata.apixels[window_pos] = col;
+        unsigned int col;
+        col = sprite_col_nat[v] + 16 + 128;
+        pixdata.apixels[window_pos] = col;
       }
       window_pos++;
    }
@@ -1047,7 +787,6 @@ static void draw_sprites_normal_sp_lo_at(struct sprite_entry *_GCCRES_ e)
    uae_u16 *buf = spixels + e->first_pixel;
    uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
    stbuf -= e->pos;
@@ -1063,28 +802,15 @@ static void draw_sprites_normal_sp_lo_at(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         if ((stbuf[pos] & (1 << offs))) {
-            col = v;
-            col += 16;
-         } else {
-            vlo = v & 3;
-            vhi = (v & (vlo - 1)) >> 2;
-            col = (vlo | vhi);
-            col += 16;
-            col += (offs << 1);
-         }
-         pixdata.apixels[window_pos] = col;
+        unsigned int col;
+        int offs;
+        offs = sprite_bit[v];
+        if (stbuf[pos] & offs) {
+          col = sprite_col_at[v] + 16;
+    		} else {
+          col = sprite_col_nat[v] + 16;
+        }
+        pixdata.apixels[window_pos] = col;
       }
       window_pos++;
    }
@@ -1096,7 +822,6 @@ static void draw_sprites_normal_dp_lo_at(struct sprite_entry *_GCCRES_ e)
    uae_u16 *buf = spixels + e->first_pixel;
    uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
    stbuf -= e->pos;
@@ -1112,29 +837,15 @@ static void draw_sprites_normal_dp_lo_at(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         if ((stbuf[pos] & (1 << offs))) {
-            col = v;
-            col += 16;
-         } else {
-            vlo = v & 3;
-            vhi = (v & (vlo - 1)) >> 2;
-            col = (vlo | vhi);
-            col += 16;
-            col += (offs << 1);
-         }
-         col += 128;
-         pixdata.apixels[window_pos] = col;
+        unsigned int col;
+        int offs;
+        offs = sprite_bit[v];
+        if (stbuf[pos] & offs) {
+          col = sprite_col_at[v] + 16 + 128;
+    		} else {
+          col = sprite_col_nat[v] + 16 + 128;
+        }
+        pixdata.apixels[window_pos] = col;
       }
       window_pos++;
    }
@@ -1144,12 +855,9 @@ static void draw_sprites_normal_sp_hi_nat(struct sprite_entry *_GCCRES_ e)
 {
    int *shift_lookup = dblpf_ms;
    uae_u16 *buf = spixels + e->first_pixel;
-   uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
-   stbuf -= e->pos;
 
    window_pos = e->pos + ((DIW_DDF_OFFSET - DISPLAY_LEFT_SHIFT) );
    window_pos <<= 1;
@@ -1163,23 +871,9 @@ static void draw_sprites_normal_sp_hi_nat(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         vlo = v & 3;
-         vhi = (v & (vlo - 1)) >> 2;
-         col = (vlo | vhi);
-         col += 16;
-         col += (offs << 1);
-         pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
+        unsigned int col;
+        col = sprite_col_nat[v] + 16;
+        pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
       }
       window_pos += 2;
    }
@@ -1190,12 +884,9 @@ static void draw_sprites_normal_dp_hi_nat(struct sprite_entry *_GCCRES_ e)
 {
    int *shift_lookup = (bpldualpfpri ? dblpf_ms2 : dblpf_ms1);
    uae_u16 *buf = spixels + e->first_pixel;
-   uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
-   stbuf -= e->pos;
 
    window_pos = e->pos + ((DIW_DDF_OFFSET - DISPLAY_LEFT_SHIFT) );
    window_pos <<= 1;
@@ -1209,24 +900,9 @@ static void draw_sprites_normal_dp_hi_nat(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         vlo = v & 3;
-         vhi = (v & (vlo - 1)) >> 2;
-         col = (vlo | vhi);
-         col += 16;
-         col += (offs << 1);
-         col += 128;
-         pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
+        unsigned int col;
+        col = sprite_col_nat[v] + 16 + 128;
+        pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
       }
       window_pos += 2;
    }
@@ -1238,7 +914,6 @@ static void draw_sprites_normal_sp_hi_at(struct sprite_entry *_GCCRES_ e)
    uae_u16 *buf = spixels + e->first_pixel;
    uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
    stbuf -= e->pos;
@@ -1255,28 +930,15 @@ static void draw_sprites_normal_sp_hi_at(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         if ((stbuf[pos] & (1 << offs))) {
-            col = v;
-            col += 16;
-         } else {
-            vlo = v & 3;
-            vhi = (v & (vlo - 1)) >> 2;
-            col = (vlo | vhi);
-            col += 16;
-            col += (offs << 1);
-         }
-         pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
+        unsigned int col;
+        int offs;
+        offs = sprite_bit[v];
+        if (stbuf[pos] & offs) {
+          col = sprite_col_at[v] + 16;
+    		} else {
+          col = sprite_col_nat[v] + 16;
+        }
+        pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
       }
       window_pos += 2;
    }
@@ -1288,7 +950,6 @@ static void draw_sprites_normal_dp_hi_at(struct sprite_entry *_GCCRES_ e)
    uae_u16 *buf = spixels + e->first_pixel;
    uae_u8 *stbuf = spixstate.bytes + e->first_pixel;
    int pos, window_pos;
-   uae_u8 xor_val = (uae_u8)(dp_for_drawing->bplcon4 >> 8);
 
    buf -= e->pos;
    stbuf -= e->pos;
@@ -1306,29 +967,15 @@ static void draw_sprites_normal_dp_hi_at(struct sprite_entry *_GCCRES_ e)
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
-
-         v >>= offs << 1;
-         v &= 15;
-
-         if ((stbuf[pos] & (1 << offs))) {
-            col = v;
-            col += 16;
-         } else {
-            vlo = v & 3;
-            vhi = (v & (vlo - 1)) >> 2;
-            col = (vlo | vhi);
-            col += 16;
-            col += (offs << 1);
-         }
-         col += 128;
-         pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
+        unsigned int col;
+        int offs;
+        offs = sprite_bit[v];
+        if (stbuf[pos] & offs) {
+          col = sprite_col_at[v] + 16 + 128;
+    		} else {
+          col = sprite_col_nat[v] + 16 + 128;
+        }
+        pixdata.apixels_w[window_pos >> 1] = col | (col << 8);
       }
       window_pos += 2;
    }
@@ -1344,20 +991,7 @@ static draw_sprites_func draw_sprites_dp_lo[2]={
 static draw_sprites_func draw_sprites_sp_lo[2]={
 	draw_sprites_normal_sp_lo_nat, draw_sprites_normal_sp_lo_at };
 
-static draw_sprites_func *draw_sprites_punt=draw_sprites_sp_lo;
-
-static __inline__ void decide_draw_sprites(void) {
-	if (bplres == 1)
-		if (bpldualpf)
-			draw_sprites_punt=draw_sprites_dp_hi;
-		else
-			draw_sprites_punt=draw_sprites_sp_hi;
-	else
-		if (bpldualpf)
-			draw_sprites_punt=draw_sprites_dp_lo;
-		else
-			draw_sprites_punt=draw_sprites_sp_lo;
-}
+static draw_sprites_func *draw_sprites_punt = draw_sprites_sp_lo;
 
 /* When looking at this function and the ones that inline it, bear in mind
    what an optimizing compiler will do with this code.  All callers of this
@@ -1365,8 +999,8 @@ static __inline__ void decide_draw_sprites(void) {
    that many of the if statements will go away completely after inlining.  */
 
 /* NOTE: This function is called for AGA modes *only* */
-STATIC_INLINE void draw_sprites_1 (struct sprite_entry *e, int ham, int dualpf,
-				   int doubling, int skip, int has_attach, int aga)
+STATIC_INLINE void draw_sprites_aga_1 (struct sprite_entry *e, int ham, int dualpf,
+				   int doubling, int skip, int has_attach)
 {
    int *shift_lookup = dualpf ? (bpldualpfpri ? dblpf_ms2 : dblpf_ms1) : dblpf_ms;
    uae_u16 *buf = spixels + e->first_pixel;
@@ -1394,52 +1028,22 @@ STATIC_INLINE void draw_sprites_1 (struct sprite_entry *e, int ham, int dualpf,
       plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
       v &= ~plfmask;
       if (v != 0) {
-         unsigned int vlo, vhi, col;
-         unsigned int v1 = v & 255;
-		 
-         /* OFFS determines the sprite pair with the highest priority that has
-	       any bits set.  E.g. if we have 0xFF00 in the buffer, we have sprite
-	       pairs 01 and 23 cleared, and pairs 45 and 67 set, so OFFS will
-	       have a value of 4.
-	       2 * OFFS is the bit number in V of the sprite pair, and it also
-	       happens to be the color offset for that pair.  */
-         int offs;
-         if (v1 == 0)
-            offs = 4 + sprite_offs[v >> 8];
-         else
-            offs = sprite_offs[v1];
+        unsigned int col;
+        int offs;
+        offs = sprite_bit[v];
+        if (has_attach && (stbuf[pos] & offs)) {
+          col = sprite_col_at[v] + sbasecol[1];
+    		} else {
+          if(offs & 0x55)
+            col = sprite_col_nat[v] + sbasecol[0];
+          else
+            col = sprite_col_nat[v] + sbasecol[1];
+        }
 
-         /* Shift highest priority sprite pair down to bit zero.  */
-         v >>= offs * 2;
-         v &= 15;
-
-         if (has_attach && (stbuf[pos] & (1 << offs))) {
-            col = v;
-					col += sbasecol[1];
-			} else {
-				/* This sequence computes the correct color value.  We have to select
-		   either the lower-numbered or the higher-numbered sprite in the pair.
-		   We have to select the high one if the low one has all bits zero.
-		   If the lower-numbered sprite has any bits nonzero, (VLO - 1) is in
-		   the range of 0..2, and with the mask and shift, VHI will be zero.
-		   If the lower-numbered sprite is zero, (VLO - 1) is a mask of
-		   0xFFFFFFFF, and we select the bits of the higher numbered sprite
-		   in VHI.
-		   This is _probably_ more efficient than doing it with branches.  */
-				vlo = v & 3;
-				vhi = (v & (vlo - 1)) >> 2;
-				col = (vlo | vhi);
-					if (vhi > 0)
-						col += sbasecol[1];
-					else
-						col += sbasecol[0];
-				col += (offs * 2);
-			}
-
-         if (dualpf) {
-					spriteagadpfpixels[window_pos] = col;
-					if (doubling)
-						spriteagadpfpixels[window_pos + 1] = col;
+      if (dualpf) {
+			  spriteagadpfpixels[window_pos] = col;
+				if (doubling)
+					spriteagadpfpixels[window_pos + 1] = col;
 			} else if (ham) {
 				col = color_reg_get (&colors_for_drawing, col);
 					col ^= xor_val;
@@ -1459,24 +1063,118 @@ STATIC_INLINE void draw_sprites_1 (struct sprite_entry *e, int ham, int dualpf,
 	}
 }
 
-/* not very optimized */
-STATIC_INLINE void draw_sprites_aga (struct sprite_entry *e)
+// ENTRY, ham, dualpf, doubling, skip, has_attach
+STATIC_INLINE void draw_sprites_aga_sp_lo_nat(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 0, 0, 1, 0); }
+STATIC_INLINE void draw_sprites_aga_dp_lo_nat(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 1, 0, 1, 0); }
+STATIC_INLINE void draw_sprites_aga_ham_lo_nat(struct sprite_entry *e)  { draw_sprites_aga_1 (e, 1, 0, 0, 1, 0); }
+
+STATIC_INLINE void draw_sprites_aga_sp_lo_at(struct sprite_entry *e)    { draw_sprites_aga_1 (e, 0, 0, 0, 1, 1); }
+STATIC_INLINE void draw_sprites_aga_dp_lo_at(struct sprite_entry *e)    { draw_sprites_aga_1 (e, 0, 1, 0, 1, 1); }
+STATIC_INLINE void draw_sprites_aga_ham_lo_at(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 1, 0, 0, 1, 1); }
+
+STATIC_INLINE void draw_sprites_aga_sp_hi_nat(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 0, 0, 0, 0); }
+STATIC_INLINE void draw_sprites_aga_dp_hi_nat(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 1, 0, 0, 0); }
+STATIC_INLINE void draw_sprites_aga_ham_hi_nat(struct sprite_entry *e)  { draw_sprites_aga_1 (e, 1, 0, 0, 0, 0); }
+
+STATIC_INLINE void draw_sprites_aga_sp_hi_at(struct sprite_entry *e)    { draw_sprites_aga_1 (e, 0, 0, 0, 0, 1); }
+STATIC_INLINE void draw_sprites_aga_dp_hi_at(struct sprite_entry *e)    { draw_sprites_aga_1 (e, 0, 1, 0, 0, 1); }
+STATIC_INLINE void draw_sprites_aga_ham_hi_at(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 1, 0, 0, 0, 1); }
+
+STATIC_INLINE void draw_sprites_aga_sp_shi_nat(struct sprite_entry *e)  { draw_sprites_aga_1 (e, 0, 0, 1, 0, 0); }
+STATIC_INLINE void draw_sprites_aga_dp_shi_nat(struct sprite_entry *e)  { draw_sprites_aga_1 (e, 0, 1, 1, 0, 0); }
+STATIC_INLINE void draw_sprites_aga_ham_shi_nat(struct sprite_entry *e) { draw_sprites_aga_1 (e, 1, 0, 1, 0, 0); }
+
+STATIC_INLINE void draw_sprites_aga_sp_shi_at(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 0, 1, 0, 1); }
+STATIC_INLINE void draw_sprites_aga_dp_shi_at(struct sprite_entry *e)   { draw_sprites_aga_1 (e, 0, 1, 1, 0, 1); }
+STATIC_INLINE void draw_sprites_aga_ham_shi_at(struct sprite_entry *e)  { draw_sprites_aga_1 (e, 1, 0, 1, 0, 1); }
+
+static draw_sprites_func draw_sprites_aga_sp_lo[2]={
+	draw_sprites_aga_sp_lo_nat, draw_sprites_aga_sp_lo_at };
+static draw_sprites_func draw_sprites_aga_sp_hi[2]={
+	draw_sprites_aga_sp_hi_nat, draw_sprites_aga_sp_hi_at };
+static draw_sprites_func draw_sprites_aga_sp_shi[2]={
+	draw_sprites_aga_sp_shi_nat, draw_sprites_aga_sp_shi_at };
+
+static draw_sprites_func draw_sprites_aga_dp_lo[2]={
+	draw_sprites_aga_dp_lo_nat, draw_sprites_aga_dp_lo_at };
+static draw_sprites_func draw_sprites_aga_dp_hi[2]={
+	draw_sprites_aga_dp_hi_nat, draw_sprites_aga_dp_hi_at };
+static draw_sprites_func draw_sprites_aga_dp_shi[2]={
+	draw_sprites_aga_dp_shi_nat, draw_sprites_aga_dp_shi_at };
+
+static draw_sprites_func draw_sprites_aga_ham_lo[2]={
+	draw_sprites_aga_ham_lo_nat, draw_sprites_aga_ham_lo_at };
+static draw_sprites_func draw_sprites_aga_ham_hi[2]={
+	draw_sprites_aga_ham_hi_nat, draw_sprites_aga_ham_hi_at };
+static draw_sprites_func draw_sprites_aga_ham_shi[2]={
+	draw_sprites_aga_ham_shi_nat, draw_sprites_aga_ham_shi_at };
+
+static __inline__ void decide_draw_sprites(void) 
 {
-   int diff = RES_HIRES - bplres;
-   if (diff > 0)
-      draw_sprites_1 (e, dp_for_drawing->ham_seen, bpldualpf, 0, diff, e->has_attached, 1);
-   else
-      draw_sprites_1 (e, dp_for_drawing->ham_seen, bpldualpf, -diff, 0, e->has_attached, 1);
+  if (currprefs.chipset_mask & CSMASK_AGA)
+  {
+    int diff = RES_HIRES - bplres;
+    if (diff > 0)
+    { // doubling = 0, skip = 1
+      if(bpldualpf)
+      { // ham = 0, dualpf = 1
+        draw_sprites_punt = draw_sprites_aga_dp_lo;
+      }
+      else if(dp_for_drawing->ham_seen)
+      { // ham = 1, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_ham_lo;
+      }
+      else
+      { // ham = 0, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_sp_lo;
+      }
+    }
+    else if(diff == 0)
+    { // doubling = 0, skip = 0
+      if(bpldualpf)
+      { // ham = 0, dualpf = 1
+        draw_sprites_punt = draw_sprites_aga_dp_hi;
+      }
+      else if(dp_for_drawing->ham_seen)
+      { // ham = 1, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_ham_hi;
+      }
+      else
+      { // ham = 0, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_sp_hi;
+      }
+    }
+    else
+    { // doubling = 1, skip = 0
+      if(bpldualpf)
+      { // ham = 0, dualpf = 1
+        draw_sprites_punt = draw_sprites_aga_dp_shi;
+      }
+      else if(dp_for_drawing->ham_seen)
+      { // ham = 1, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_ham_shi;
+      }
+      else
+      { // ham = 0, dualpf = 0
+        draw_sprites_punt = draw_sprites_aga_sp_shi;
+      }
+    }
+  }
+  else
+  {
+    if (bplres == 1)
+  		if (bpldualpf)
+  			draw_sprites_punt=draw_sprites_dp_hi;
+  		else
+  			draw_sprites_punt=draw_sprites_sp_hi;
+  	else
+  		if (bpldualpf)
+  			draw_sprites_punt=draw_sprites_dp_lo;
+  		else
+  			draw_sprites_punt=draw_sprites_sp_lo;
+	}
 }
 
-static __inline__ void draw_sprites_ecs (struct sprite_entry *_GCCRES_ e)
-{
-	uae4all_prof_start(12);
-	draw_sprites_punt[e->has_attached](e);
-	uae4all_prof_end(12);
-}
-
-#endif
 
 #define MERGE(a,b,mask,shift) {\
     register uae_u32 tmp = mask & (a ^ (b >> shift)); \
@@ -2312,10 +2010,8 @@ static __inline__ void pfield_draw_line (int lineno, int gfx_ypos)
 			int i;
 			decide_draw_sprites();
 			for (i = 0; i < dip_for_drawing->nr_sprites; i++) {
-				if (currprefs.chipset_mask & CSMASK_AGA)
-					draw_sprites_aga (curr_sprite_entries + dip_for_drawing->first_sprite_entry + i);
-				else
-					draw_sprites_ecs (curr_sprite_entries + dip_for_drawing->first_sprite_entry + i);
+      	struct sprite_entry *e = curr_sprite_entries + dip_for_drawing->first_sprite_entry + i;
+      	draw_sprites_punt[e->has_attached](e);
 			}
 		}
    
@@ -2443,7 +2139,7 @@ static _INLINE_ void draw_status_line (int line)
     	gfxvid_width = var_GFXVIDINFO_WIDTH;
     	
     if (td_pos & TD_RIGHT)
-        x = gfxvid_width - TD_PADX - 5*TD_WIDTH;
+        x = gfxvid_width - TD_PADX - 6 * TD_WIDTH;
     else
         x = TD_PADX;
 
@@ -2454,7 +2150,7 @@ static _INLINE_ void draw_status_line (int line)
 
   uae4all_memclr (xlinebuffer + (x - 4) * GFXVIDINFO_PIXBYTES, (gfxvid_width - x + 4) * GFXVIDINFO_PIXBYTES);
 
-	for (led = -1; led < (mainMenu_drives+1); led++) {
+	for (led = -2; led < (mainMenu_drives+1); led++) {
 		int track;
 		if (led > 0) {
 			/* Floppy */
@@ -2462,9 +2158,15 @@ static _INLINE_ void draw_status_line (int line)
 			on = gui_data.drive_motor[led-1];
 			on_rgb = 0x0f0;
 			off_rgb = 0x040;
+		} else if (led < -1) {
+			/* Idle time */
+			track = idletime_percent;
+			on = 1;
+			on_rgb = 0x666;
+			off_rgb = 0x666;
 		} else if (led < 0) {
 			/* Power */
-			track = -1;
+			track = gui_data.fps;
 			on = gui_data.powerled;
 			on_rgb = 0xf00;
 			off_rgb = 0x400;
@@ -2496,28 +2198,25 @@ static _INLINE_ void draw_status_line (int line)
 
 	if (y >= TD_PADY && y - TD_PADY < TD_NUM_HEIGHT) {
 	    if (track >= 0) {
-		int offs = (TD_WIDTH - 2 * TD_NUM_WIDTH) / 2;
-		write_tdnumber (x + offs, y - TD_PADY, track / 10);
+    int tn = track >= 100 ? 3 : 2;
+		int offs = (TD_LED_WIDTH - tn * TD_NUM_WIDTH) / 2;
+    if(track >= 100)
+    {
+    	write_tdnumber (x + offs, y - TD_PADY, track / 100);
+    	offs += TD_NUM_WIDTH;
+    }
+		write_tdnumber (x + offs, y - TD_PADY, (track / 10) % 10);
 		write_tdnumber (x + offs + TD_NUM_WIDTH, y - TD_PADY, track % 10);
+	    }
+		  else if (nr_units(currprefs.mountinfo) > 0) {
+    		int offs = (TD_LED_WIDTH - 2 * TD_NUM_WIDTH) / 2;
+			  write_tdletter(x + offs, y - TD_PADY, 'H');
+			  write_tdletter(x + offs + TD_NUM_WIDTH, y - TD_PADY, 'D');
 	    }
 	}
 	x += TD_WIDTH;
     }
 
-        x = gfxvid_width - TD_PADX - 5*TD_WIDTH;
-	x+=100 - (TD_WIDTH*(mainMenu_drives-1)) - TD_WIDTH;
-	if (y >= TD_PADY && y - TD_PADY < TD_NUM_HEIGHT) {
-	    int offs = (TD_WIDTH - 2 * TD_NUM_WIDTH) / 2;
-	    if(fps_counter >= 100)
-	    	write_tdnumber (x + offs - TD_NUM_WIDTH, y - TD_PADY, fps_counter / 100);
-	    write_tdnumber (x + offs, y - TD_PADY, (fps_counter / 10) % 10);
-	    write_tdnumber (x + offs + TD_NUM_WIDTH, y - TD_PADY, fps_counter % 10);
-		
-		if (mainMenu_filesysUnits > 0) {
-			write_tdletter(x + offs + TD_WIDTH, y - TD_PADY, 'H');
-			write_tdletter(x + offs + TD_WIDTH + TD_NUM_WIDTH, y - TD_PADY, 'D');
-		}
-	}
 }
 
 void check_all_prefs(void)
@@ -2535,9 +2234,6 @@ void check_all_prefs(void)
 static _INLINE_ void finish_drawing_frame (void)
 {
 	int i;
-
-	if (mainMenu_showStatus)
-		fps_counter_upd();
 
 	lockscr();
 

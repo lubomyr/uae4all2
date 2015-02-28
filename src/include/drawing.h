@@ -207,11 +207,12 @@ extern void moveVertical(int value);
 
 extern void InitDisplayArea(int newWidth);
 
+extern unsigned long time_per_frame;
+extern void adjust_idletime(unsigned long ns_waited);
+
 /* Finally, stuff that shouldn't really be shared.  */
 
 extern int diwfirstword,diwlastword;
 
-void reset_frameskip(void);
 void check_all_prefs(void);
-void delay_frameskip(unsigned);
 void init_row_map(void);

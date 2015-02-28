@@ -43,7 +43,6 @@
 
 // Return codes
 #define M68K_OK 0
-#define M68K_RUNNING 1
 #define M68K_NO_SUP_ADDR_SPACE 2
 #define M68K_INV_REG -1
 
@@ -111,7 +110,7 @@ extern int mainMenu_CPU_speed;
 
 #define M68K_INT_ACK_AUTOVECTOR         -1
 
-//#define M68K_RUNNING    0x01
+#define M68K_RUNNING    0x01
 #define M68K_HALTED     0x80
 #define M68K_WAITING    0x04
 #define M68K_DISABLE    0x20
@@ -1656,18 +1655,14 @@ static u32 getDivs68kCycles(s32 dividend, s16 divisor)
 /***************************************************************************/
 /* m68k_emulate()                                                          */
 /* Parametros: Numero de ciclos a ejecutar                                 */
-/* Retorno: Exito de la operación                                          */
-/*          0  La operacion se ha realizado satisfactoriamente             */
-/*          -1 La CPU esta detenida debido a un ERROR DE BUS DOBLE (linea) */
-/*             El PC ha salido de los limites (bucle no en linea)          */
 /***************************************************************************/
-u32 m68k_emulate(s32 cycles)
+void m68k_emulate(s32 cycles)
 {
   M68K_CONTEXT *pm68kcontext = &m68kcontext;
   
 #if 0
 	/* Comprobar si la CPU esta detenida debido a un doble error de bus */
-	if (m68kcontext.execinfo & M68K_FAULTED) return (u32)-1;
+	if (m68kcontext.execinfo & M68K_FAULTED) return;
 #endif
 	
 	/* Poner la CPU en estado de ejecucion */
@@ -1694,7 +1689,7 @@ u32 m68k_emulate(s32 cycles)
 	{
     // CPU is HALTED -> no cycles to emulate
     finish_emulate(cycles);
-    return M68K_OK;
+    return;
 	} 
 
   if(line > 0)
@@ -1703,7 +1698,7 @@ u32 m68k_emulate(s32 cycles)
     * First requires interrupts to be handled after the first
     * emulated instruction (Cruise for a Corpse, 68000),
     * second requires handling them before (All New World of Lemmings, 68020).
-    * TomB (2014-01-10): All New World of Lemmings owrks also if IRQ is handled after first instruction...
+    * TomB (2014-01-10): All New World of Lemmings works also if IRQ is handled after first instruction...
     *                    Alien Breed 3D requires IRQ handling after first emulated instruction.
     */
 //    if(prefs_cpu_model >= M68020)
@@ -1750,6 +1745,4 @@ u32 m68k_emulate(s32 cycles)
   } while (pm68kcontext->io_cycle_counter > 0);  
 
   finish_emulate(cycles - pm68kcontext->cycles_not_done - (pm68kcontext->io_cycle_counter >> mainMenu_CPU_speed));
-  
-  return M68K_OK;
 }

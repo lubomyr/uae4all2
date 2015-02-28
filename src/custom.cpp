@@ -42,6 +42,7 @@
 #include "savestate.h"
 #include "menu_config.h"
 
+
 #ifdef STOP_WHEN_COPPER
 static __inline__ void setcopper(void)
 {
@@ -96,6 +97,9 @@ extern int fcounter;
 
 /* Events */
 unsigned long int currcycle, nextevent;
+unsigned long last_synctime = 0;
+frame_time_t syncbase;
+
 struct ev eventtab[ev_max];
 
 static int vpos;
@@ -256,6 +260,11 @@ static unsigned int regtypes[512];
 static struct copper cop_state;
 static int copper_enabled_thisline;
 
+/*
+ * Statistics
+ */
+
+static unsigned long int lastframetime = 0, timeframes = 0;
 
 /* Recording of custom chip register changes.  */
 struct sprite_entry *curr_sprite_entries;
@@ -312,16 +321,10 @@ static __inline__ void setclr (uae_u16 *_GCCRES_ p, uae_u16 val)
 
 static __inline__ uae_u8 *_GCCRES_ pfield_xlateptr (uaecptr plpt, int bytecount)
 {
-	if (!chipmem_bank.check (plpt, bytecount)) {
-		static int count = 0;
-		if (!count)
-		{
-			count++;
-			write_log ("Warning: Bad playfield pointer\n");
-		}
-		return NULL;
-	}
-	return chipmem_bank.xlateaddr (plpt);
+  plpt &= chipmem_mask;
+  if((plpt + bytecount) > allocated_chipmem)
+    return NULL;
+  return chipmemory + plpt;
 }
 
 static __inline__ void docols (struct color_entry *_GCCRES_ colentry)
@@ -393,6 +396,7 @@ static _INLINE_ void decide_diw (int hpos)
 }
 
 static int fetchmode;
+static int delaymask;
 static int maxplanes_ocs[]={ 6,4,0,0 };
 static int maxplanes_ecs[]={ 6,4,2,0 };
 static int maxplanes_aga[]={ 8,4,2,0, 8,8,4,0, 8,8,8,0 };
@@ -575,15 +579,12 @@ static __inline__ void compute_toscr_delay_1 ()
     int delay2 = ((bplcon1 >> 4) & 0x0f) | (((bplcon1 >> 4) & 0x0c00) >> 6);
     int shdelay1 = (bplcon1 >> 12) & 3;
     int shdelay2 = (bplcon1 >> 8) & 3;
-    int delaymask;
-    int fetchwidth = 16 << fetchmode;
     
     delay1 += delayoffset;
     delay2 += delayoffset;
-    delaymask = (fetchwidth - 1) >> toscr_res;
-    toscr_delay1x = (delay1 & delaymask) << toscr_res;
+    toscr_delay1x = (delay1 & (delaymask >> toscr_res)) << toscr_res;
     toscr_delay1x |= shdelay1 >> (2 - toscr_res);
-    toscr_delay2x = (delay2 & delaymask) << toscr_res;
+    toscr_delay2x = (delay2 & (delaymask >> toscr_res)) << toscr_res;
     toscr_delay2x |= shdelay2 >> (2 - toscr_res);
 }
 
@@ -606,8 +607,17 @@ STATIC_INLINE void compute_toscr_delay ()
 
 STATIC_INLINE void update_toscr_planes (void)
 {
-  if (toscr_nr_planes > thisline_decision.nr_planes)
+  if (toscr_nr_planes > thisline_decision.nr_planes) {
+    if(thisline_decision.nr_planes > 0)
+    {
+    	int j;
+    	for (j = thisline_decision.nr_planes; j < toscr_nr_planes; j++)
+    	{
+        memset ((uae_u32 *)(line_data[next_lineno] + 2 * MAX_WORDS_PER_LINE * j), 0, out_offs * 4);
+      }
+    }
     thisline_decision.nr_planes = toscr_nr_planes;
+  }
 }
 
 STATIC_INLINE void toscr_3_ecs (int nbits)
@@ -783,7 +793,7 @@ STATIC_INLINE void beginning_of_plane_block (int pos, int fm)
 
 
 #define long_fetch_ecs_init(PLANE, NWORDS, DMA) \
-    uae_u16 *real_pt = (uae_u16 *)pfield_xlateptr (bpl[PLANE].pt /*+ bpl[PLANE].off*/, NWORDS << 1); \
+    uae_u16 *real_pt = (uae_u16 *)pfield_xlateptr (bpl[PLANE].pt, NWORDS << 1); \
     int delay = toscr_delay[(PLANE & 1)]; \
     int tmp_nbits = out_nbits; \
     uae_u32 shiftbuffer = todisplay[PLANE][4]; \
@@ -811,6 +821,30 @@ STATIC_INLINE void beginning_of_plane_block (int pos, int fm)
 			shiftbuffer <<= 16; \
 		} else
 
+#ifdef USE_ARMNEON
+#define long_fetch_ecs_end(PLANE,NWORDS, DMA) \
+		{ \
+			outval = (outval << 16) | t; \
+			shiftbuffer <<= 16; \
+			tmp_nbits += 16; \
+			if (tmp_nbits == 32) { \
+        *dataptr++ = outval; \
+				tmp_nbits = 0; \
+			} \
+		} \
+		NWORDS--; \
+		if (DMA) { \
+			/*fetchval = do_get_mem_word (real_pt);*/ \
+			/*real_pt++;*/ \
+			  __asm__ __volatile__ (                    \
+			    "ldrh    %[val], [%[pt]], #2   \n\t"    \
+			    : [val] "=r" (fetchval), [pt] "+r" (real_pt) );  \
+		} \
+	} \
+    fetched[PLANE] = fetchval; \
+    todisplay[PLANE][4] = shiftbuffer; \
+    outword[PLANE] = outval;
+#else
 #define long_fetch_ecs_end(PLANE,NWORDS, DMA) \
 		{ \
 			outval = (outval << 16) | t; \
@@ -830,6 +864,7 @@ STATIC_INLINE void beginning_of_plane_block (int pos, int fm)
     fetched[PLANE] = fetchval; \
     todisplay[PLANE][4] = shiftbuffer; \
     outword[PLANE] = outval;
+#endif
 
 static __inline__ void long_fetch_ecs_0(int plane, int nwords, int dma)
 {
@@ -844,7 +879,203 @@ static __inline__ void long_fetch_ecs_1(int plane, int nwords, int dma)
 	long_fetch_ecs_end(plane, nwords, dma)
 }
 
+#ifdef USE_ARMNEON
+#define long_fetch_aga_1_init()                                                                  \
+	uae_u32 *real_pt = (uae_u32 *)pfield_xlateptr (bpl[plane].pt + bpl[plane].off, nwords * 2);    \
+	int tmp_nbits = out_nbits;                                                                     \
+	uae_u32 outval = outword[plane];                                                               \
+	uae_u32 fetchval0 = fetched_aga0[plane];                                                       \
+	uae_u32 fetchval1 = fetched_aga1[plane];                                                       \
+   uae_u32 *dataptr_start = (uae_u32 *)(line_data[next_lineno] + (plane<<1)*MAX_WORDS_PER_LINE); \
+   uae_u32 *dataptr = dataptr_start + out_offs;                                                  \
+                                                                                                 \
+  int offs = (16 << 1) - 16 + toscr_delay[plane & 1];                                            \
+	int off1 = offs >> 5;                                                                          \
+	if (off1 == 3)                                                                                 \
+		off1 = 2;                                                                                    \
+	offs -= off1 << 5;                                                                             \
+                                                                                                 \
+	if (dma)                                                                                       \
+		bpl[plane].pt += nwords << 1;                                                                \
+                                                                                                 \
+	if (real_pt == 0)                                                                              \
+		/* @@@ Don't do this, fall back on chipmem_wget instead.  */                                 \
+		return;                                                                                      \
+                                                                                                 \
+  /* Instead of shifting a 64 bit value more than 16 bits, we   */                               \
+  /* move the pointer for x bytes and shift a 32 bit value less */                               \
+  /* than 16 bits. See (1)                                      */                               \
+  int buffer_add = (offs >> 4);                                                                  \
+  offs &= 15;                                                                                    \
+                                                                                                 \
+	while (nwords > 0) {                                                                           \
+		int i;                                                                                       \
+  	uae_u32 *shiftbuffer = todisplay[plane] + 4;                                                 \
+                                                                                                 \
+		shiftbuffer[0] = fetchval0;                                                                  \
+                                                                                                 \
+    /* (1) */                                                                                    \
+    if(buffer_add)                                                                               \
+      shiftbuffer = (uae_u32 *)((uae_u16 *)shiftbuffer + buffer_add);                            \
+                                                                                                 \
+		for (i = 0; i < (1 << 1); i++) {                                                             \
+			int bits_left = 32 - tmp_nbits;                                                            \
+                                                                                                 \
+			uae_u32 t0 = shiftbuffer[off1];                                                            \
+			t0 = (t0 >> offs) & 0xFFFF;
 
+#define long_fetch_aga_2_init()                                                                  \
+	uae_u32 *real_pt = (uae_u32 *)pfield_xlateptr (bpl[plane].pt + bpl[plane].off, nwords * 2);    \
+	int tmp_nbits = out_nbits;                                                                     \
+	uae_u32 outval = outword[plane];                                                               \
+	uae_u32 fetchval0 = fetched_aga0[plane];                                                       \
+	uae_u32 fetchval1 = fetched_aga1[plane];                                                       \
+   uae_u32 *dataptr_start = (uae_u32 *)(line_data[next_lineno] + (plane<<1)*MAX_WORDS_PER_LINE); \
+   uae_u32 *dataptr = dataptr_start + out_offs;                                                  \
+                                                                                                 \
+  int offs = (16 << 2) - 16 + toscr_delay[plane & 1];                                            \
+	int off1 = offs >> 5;                                                                          \
+	if (off1 == 3)                                                                                 \
+		off1 = 2;                                                                                    \
+	offs -= off1 << 5;                                                                             \
+                                                                                                 \
+	if (dma)                                                                                       \
+		bpl[plane].pt += nwords << 1;                                                                \
+                                                                                                 \
+	if (real_pt == 0)                                                                              \
+		/* @@@ Don't do this, fall back on chipmem_wget instead.  */                                 \
+		return;                                                                                      \
+                                                                                                 \
+  /* Instead of shifting a 64 bit value more than 16 bits, we   */                               \
+  /* move the pointer for x bytes and shift a 32 bit value less */                               \
+  /* than 16 bits. See (1)                                      */                               \
+  int buffer_add = (offs >> 4);                                                                  \
+  offs &= 15;                                                                                    \
+                                                                                                 \
+	while (nwords > 0) {                                                                           \
+		int i;                                                                                       \
+  	uae_u32 *shiftbuffer = todisplay[plane] + 4;                                                 \
+                                                                                                 \
+		shiftbuffer[0] = fetchval0;                                                                  \
+  	shiftbuffer[1] = fetchval1;                                                                  \
+                                                                                                 \
+    /* (1) */                                                                                    \
+    if(buffer_add)                                                                               \
+      shiftbuffer = (uae_u32 *)((uae_u16 *)shiftbuffer + buffer_add);                            \
+                                                                                                 \
+		for (i = 0; i < (1 << 2); i++) {                                                             \
+			int bits_left = 32 - tmp_nbits;                                                            \
+                                                                                                 \
+			uae_u32 t0 = shiftbuffer[off1];                                                            \
+			t0 = (t0 >> offs) & 0xFFFF;
+
+#define long_fetch_aga_weird()                                    \
+			if (bits_left < 16) {                                       \
+				outval <<= bits_left;                                     \
+				outval |= t0 >> (16 - bits_left);                         \
+        *dataptr++ = outval;                                      \
+				outval = t0;                                              \
+				tmp_nbits = 16 - bits_left;                               \
+				/* Instead of shifting 128 bit of data for 16 bit,     */ \
+				/* we move the pointer two bytes. See also (2) and (3) */ \
+				/*aga_shift (shiftbuffer, 16, fm);                     */ \
+				shiftbuffer = (uae_u32 *)((uae_u16 *)shiftbuffer - 1);    \
+			} else 
+
+#define long_fetch_aga_1_end()                                    \
+			{                                                           \
+				outval = (outval << 16) | t0;                             \
+				/* (2)                              */                    \
+				/*aga_shift (shiftbuffer, 16, fm);  */                    \
+				shiftbuffer = (uae_u32 *)((uae_u16 *)shiftbuffer - 1);    \
+				tmp_nbits += 16;                                          \
+				if (tmp_nbits == 32) {                                    \
+               *dataptr++ = outval;                               \
+               tmp_nbits = 0;                                     \
+				}                                                         \
+			}                                                           \
+		}                                                             \
+                                                                  \
+    /* (3)                                               */       \
+    /* We have to move the data, but now, we can simply  */       \
+    /* copy long values and have to do it only once.     */       \
+      todisplay[plane][5] = todisplay[plane][4];                  \
+                                                                  \
+		nwords -= 1 << 1;                                             \
+                                                                  \
+		if (dma) {                                                    \
+			  __asm__ __volatile__ (                                    \
+			    "ldr     %[val0], [%[pt]], #4   \n\t"                   \
+			    "ror     %[val0], %[val0], #16   \n\t"                  \
+			    : [val0] "=r" (fetchval0), [pt] "+r" (real_pt) );       \
+		}                                                             \
+	}                                                               \
+	fetched_aga0[plane] = fetchval0;                                \
+	fetched_aga1[plane] = fetchval1;                                \
+	outword[plane] = outval;
+
+#define long_fetch_aga_2_end()                                    \
+			{                                                           \
+				outval = (outval << 16) | t0;                             \
+				/* (2)                              */                    \
+				/*aga_shift (shiftbuffer, 16, fm);  */                    \
+				shiftbuffer = (uae_u32 *)((uae_u16 *)shiftbuffer - 1);    \
+				tmp_nbits += 16;                                          \
+				if (tmp_nbits == 32) {                                    \
+               *dataptr++ = outval;                               \
+               tmp_nbits = 0;                                     \
+				}                                                         \
+			}                                                           \
+		}                                                             \
+                                                                  \
+    /* (3)                                               */       \
+    /* We have to move the data, but now, we can simply  */       \
+    /* copy long values and have to do it only once.     */       \
+      todisplay[plane][7] = todisplay[plane][5];                  \
+      todisplay[plane][6] = todisplay[plane][4];                  \
+                                                                  \
+		nwords -= 1 << 2;                                             \
+                                                                  \
+		if (dma) {                                                    \
+			  __asm__ __volatile__ (                                    \
+			    "ldr     %[val1], [%[pt]], #4    \n\t"                  \
+			    "ror     %[val1], %[val1], #16   \n\t"                  \
+			    "ldr     %[val0], [%[pt]], #4    \n\t"                  \
+			    "ror     %[val0], %[val0], #16   \n\t"                  \
+			    : [val0] "=r" (fetchval0), [val1] "=r" (fetchval1),     \
+			      [pt] "+r" (real_pt) );                                \
+		}                                                             \
+	}                                                               \
+	fetched_aga0[plane] = fetchval0;                                \
+	fetched_aga1[plane] = fetchval1;                                \
+	outword[plane] = outval;
+
+static __inline__ void long_fetch_aga_1_0(int plane, int nwords, int dma)
+{
+	long_fetch_aga_1_init()
+	long_fetch_aga_1_end()
+}
+
+static __inline__ void long_fetch_aga_2_0(int plane, int nwords, int dma)
+{
+	long_fetch_aga_2_init()
+	long_fetch_aga_2_end()
+}
+
+static __inline__ void long_fetch_aga_1_1(int plane, int nwords, int dma)
+{
+	long_fetch_aga_1_init()
+	long_fetch_aga_weird()
+	long_fetch_aga_1_end()
+}
+    
+static __inline__ void long_fetch_aga_2_1(int plane, int nwords, int dma)
+{
+	long_fetch_aga_2_init()
+	long_fetch_aga_weird()
+	long_fetch_aga_2_end()
+}
+#else
 STATIC_INLINE void long_fetch_aga (int plane, int nwords, int weird_number_of_bits, int fm, int dma)
 {
 	uae_u32 *real_pt = (uae_u32 *)pfield_xlateptr (bpl[plane].pt /*+ bpl[plane].off*/, nwords * 2);
@@ -931,28 +1162,12 @@ STATIC_INLINE void long_fetch_aga (int plane, int nwords, int weird_number_of_bi
 		nwords -= 1 << fm;
 
 		if (dma) {
-#ifndef USE_ARMNEON
 			if (fm == 1)
 				fetchval0 = do_get_mem_long (real_pt);
 			else {
 				fetchval1 = do_get_mem_long (real_pt);
 				fetchval0 = do_get_mem_long (real_pt + 1);
 			}
-#else
-			if (fm == 1)
-			  __asm__ __volatile__ (
-			    "ldr     %[val0], [%[pt]]   \n\t"
-			    "ror     %[val0], %[val0], #16   \n\t"
-			    : [val0] "=r" (fetchval0) : [pt] "r" (real_pt) );
-			else {
-			  __asm__ __volatile__ (
-			    "ldr     %[val1], [%[pt]]   \n\t"
-			    "ror     %[val1], %[val1], #16   \n\t"
-			    "ldr     %[val0], [%[pt], #4]   \n\t"
-			    "ror     %[val0], %[val0], #16   \n\t"
-			    : [val0] "=r" (fetchval0), [val1] "=r" (fetchval1) : [pt] "r" (real_pt) );
-			}
-#endif
 			real_pt += fm;
 		}
 	}
@@ -966,6 +1181,7 @@ STATIC_INLINE void long_fetch_aga (int plane, int nwords, int weird_number_of_bi
 #define long_fetch_aga_2_0(hpos, nwords, dma) { long_fetch_aga (hpos, nwords,  0, 2, dma); }
 #define long_fetch_aga_2_1(hpos, nwords, dma) { long_fetch_aga (hpos, nwords,  1, 2, dma); }
 
+#endif
 STATIC_INLINE void do_long_fetch (int nwords, int dma, int fm)
 {
 	int i;
@@ -1049,7 +1265,7 @@ static void fetch(int nr, int FM)
 {
    if (nr < toscr_nr_planes)
    {
-      register uaecptr p = (bpl[nr].pt /*+ bpl[nr].off*/)/*&0x000FFFFF*/;
+      register uaecptr p = (bpl[nr].pt)/*&0x000FFFFF*/;
       switch (FM) {
          case 0:
             fetched[nr] = CHIPMEM_WGET_CUSTOM (p);
@@ -1604,8 +1820,7 @@ static _INLINE_ void record_sprite (int line, int num, int sprxp, uae_u16 *_GCCR
        low order bit records whether the attach bit was set for this pair.  */
 	
 	if (ctl & (num << 7) & 0x80) {
-		uae_u32 state = 0x01010101 << (num - 1);
-		uae_u32 *stbuf = spixstate.words + (word_offs >> 2);
+		uae_u8 state = 0x03 << (num & ~1);
 		uae_u8 *stb1 = spixstate.bytes + word_offs;	
 		for (i = 0; i < width; i += 8) {
 			stb1[0] |= state;
@@ -1701,7 +1916,7 @@ static __inline__ void finish_decisions (void)
 		thisline_decision.diwlastword = max_diwlastword;
 	
 	if (thisline_decision.plfleft != -1) {
-		record_diw_line (thisline_decision.diwfirstword, thisline_decision.diwlastword);
+//		record_diw_line (thisline_decision.diwfirstword, thisline_decision.diwlastword);
 		decide_sprites (hpos);
 	}
 	
@@ -2490,13 +2705,16 @@ static _INLINE_ void FMODE (uae_u16 v)
     switch (fmode & 3) {
     	case 0:
     		fetchmode = 0;
+    		delaymask = 15; // (16 << fetchmode) - 1;
     		break;
     	case 1:
     	case 2:
     		fetchmode = 1;
+    		delaymask = 31; // (16 << fetchmode) - 1;
     		break;
     	case 3:
     		fetchmode = 2;
+    		delaymask = 63; // (16 << fetchmode) - 1;
     		break;
     }
     curr_diagram = cycle_diagram_table[fetchmode][GET_RES (v)][planes_bplcon0];
@@ -3506,11 +3724,45 @@ void init_hardware_for_drawing_frame (void)
 	next_sprite_forced = 1;
 }
 
+static frame_time_t frametime2;
+
+void fpscounter_reset (void)
+{
+    timeframes = 0;
+    frametime2 = 0;
+    lastframetime = read_processor_time ();
+}
+
+static void fpscounter (void)
+{
+    frame_time_t now, last;
+    int mcnt = 25;
+
+    now = read_processor_time ();
+    last = now - lastframetime;
+    lastframetime = now;
+
+    frametime2 += last;
+    timeframes++;
+    if ((timeframes % mcnt) == 0) {
+    	int fps = frametime2 == 0 ? 0 : (syncbase * mcnt) / (frametime2 / 10);
+      if(prefs_gfx_framerate > 0)
+        fps = fps / (prefs_gfx_framerate + 1);
+    	if (fps > 9999)
+    	    fps = 9999;
+    	gui_data.fps = (fps + 5) / 10;
+    	frametime2 = 0;
+    }
+}
+
 static int vsync_handler_cnt_disk_change=0;
 
 static void vsync_handler (void)
 {
 	int i;
+
+  fpscounter();
+
 	for (i = 0; i < MAX_SPRITES; i++)
 		spr[i].state = SPR_waiting_start;
 	
@@ -3533,8 +3785,10 @@ static void vsync_handler (void)
 	
 	vsync_handle_redraw (lof, lof_changed);
 
-	if (quit_program > 0)
-		return;
+	if (quit_program > 0) {
+		framecnt = 0;
+	  return;
+  }
 	
 	if (vsync_handler_cnt_disk_change == 0) {
 		/* resolution_check_change (); */
@@ -3791,6 +4045,7 @@ void customreset (void)
 	currcycle = 0;
 	
 	new_beamcon0 = mainMenu_ntsc ? 0 : 0x20;
+	time_per_frame = 1000 * 1000 / (mainMenu_ntsc ? 60 : 50);
 	init_hz ();
 	
 	audio_reset ();
