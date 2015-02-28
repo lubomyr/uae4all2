@@ -301,7 +301,9 @@ int graphics_init (void)
 
 static void graphics_subshutdown (void)
 {
+#ifndef AROS
     SDL_FreeSurface(prSDLScreen);
+#endif
 }
 
 void graphics_leave (void)
