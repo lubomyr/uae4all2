@@ -20,7 +20,7 @@ GUICHAN_GUI=1
 DEFAULT_CFLAGS = `sdl-config --cflags`
 
 #LDFLAGS = -lSDL  -lpthread  -lz -lSDL_image -lpng12 
-LDFLAGS = -lbcm_host -L/opt/vc/lib -lguichan -lguichan_sdl -lSDL_image -lz -lpng -lpthread `sdl-config --libs` -lSDL_ttf
+LDFLAGS = -lbcm_host -L/opt/vc/lib -lguichan -lguichan_sdl -lSDL_image -lz -lpng -lpthread `sdl-config --libs` -lSDL_ttf -lrt
 MORE_CFLAGS += -I/opt/vc/include -I/opt/vc/include/interface/vmcs_host/linux -I/opt/vc/include/interface/vcos/pthreads
 MORE_CFLAGS +=   -Isrc -Isrc/gp2x -Isrc/vkbd -Isrc/menu -Isrc/include -Isrc/gp2x/menu -fomit-frame-pointer -Wno-unused -Wno-format -DUSE_SDL -DGCCCONSTFUNC="__attribute__((const))" -DUSE_UNDERSCORE -fexceptions -DUNALIGNED_PROFITABLE -DOPTIMIZED_FLAGS -DSHM_SUPPORT_LINKS=0 -DOS_WITHOUT_MEMORY_MANAGEMENT 
 #-DMENU_MUSIC
