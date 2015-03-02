@@ -22,8 +22,8 @@ GUICHAN_GUI=1
 PANDORA=1
 
 DEFAULT_CFLAGS = `$(SDL_BASE)sdl-config --cflags`
-#LDFLAGS = -lSDL -lpthread  -lz -lSDL_image -lpng12 -L$(C64_TOOLS_ROOT)/libc64 -lc64
-LDFLAGS = -lSDL -lpthread  -lz -lSDL_image -lpng12
+#LDFLAGS = -lSDL -lpthread  -lz -lSDL_image -lpng  -lrt -L$(C64_TOOLS_ROOT)/libc64 -lc64
+LDFLAGS = -lSDL -lpthread  -lz -lSDL_image -lpng -lrt
 
 MORE_CFLAGS +=   -Isrc -Isrc/gp2x -Isrc/menu -Isrc/include -Isrc/gp2x/menu -fomit-frame-pointer -Wno-unused -Wno-format -DUSE_SDL -DGCCCONSTFUNC="__attribute__((const))" -DUSE_UNDERSCORE -DUNALIGNED_PROFITABLE -DOPTIMIZED_FLAGS -DSHM_SUPPORT_LINKS=0 -DOS_WITHOUT_MEMORY_MANAGEMENT
 ifdef GUICHAN_GUI
