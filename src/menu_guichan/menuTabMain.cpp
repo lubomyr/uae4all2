@@ -436,6 +436,9 @@ void menuTabMain_Init()
     button_kickrom = new gcn::Button("Browse ROM");
     button_kickrom->setSize(90,22);
     button_kickrom->setPosition(105,243);
+#ifdef ANDROIDSDL
+    button_kickrom->setFont(font2);
+#endif
     button_kickrom->setBaseColor(baseCol);
     button_kickrom->setId("BrowseROM");
     kickromButtonActionListener = new KickromButtonActionListener();

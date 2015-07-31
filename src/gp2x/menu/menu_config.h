@@ -92,6 +92,7 @@ extern int mainMenu_pos_x_button5;
 extern int mainMenu_pos_y_button5;
 extern int mainMenu_pos_x_button6;
 extern int mainMenu_pos_y_button6;
+extern float mainMenu_button_size;
 extern int menuLoad_extfilter;
 extern int mainMenu_quickSwitch;
 extern int mainMenu_FloatingJoystick;

@@ -214,16 +214,17 @@ void run()
                         widgets::showWarning("Kickstart ROM not found.", romfile);
                     break;
 
-
+// Solved problem with returning to menu
+/*
                 case SDLK_LALT:
-                case SDLK_LCTRL:
+                case SDLK_F12:
                     if(widgets::window_load->isVisible() || widgets::window_warning->isVisible() || widgets::window_config->isVisible())
                         break;
                     if (emulating) {
                         mainMenu_case = MAIN_MENU_CASE_RUN;
                         running = false;
                     }
-                    break;
+                    break;*/
 
                 case SDLK_UP:
                     if(widgets::HandleNavigation(DIRECTION_UP))

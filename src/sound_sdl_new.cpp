@@ -76,40 +76,10 @@ static int have_sound = 0;
 void sound_default_evtime(void)
 {
 	int pal = beamcon0 & 0x20;
-#if !( defined(PANDORA) || defined(ANDROIDSDL) )
-	switch(m68k_speed)
-	{
-		case 6:
-			scaled_sample_evtime=(unsigned)(MAXHPOS_PAL*MAXVPOS_PAL*VBLANK_HZ_PAL*CYCLE_UNIT/1.86)/sound_rate;
-			break;
-
-		case 5:
-		case 4: // ~4/3 234
-			if (pal)
-				scaled_sample_evtime=(MAXHPOS_PAL*244*VBLANK_HZ_PAL*CYCLE_UNIT)/sound_rate; // ???
-			else
-				scaled_sample_evtime=(MAXHPOS_NTSC*255*VBLANK_HZ_NTSC*CYCLE_UNIT)/sound_rate;
-			break;
-
-		case 3:
-		case 2: // ~8/7 273
-			if (pal)
-				scaled_sample_evtime=(MAXHPOS_PAL*270*VBLANK_HZ_PAL*CYCLE_UNIT)/sound_rate;
-			else
-				scaled_sample_evtime=(MAXHPOS_NTSC*255*VBLANK_HZ_NTSC*CYCLE_UNIT)/sound_rate;
-			break;
-
-		case 1:
-		default: // MAXVPOS_PAL?
-#endif
-			if (pal)
-				scaled_sample_evtime=(MAXHPOS_PAL*313*VBLANK_HZ_PAL*CYCLE_UNIT)/sound_rate;
-			else
-				scaled_sample_evtime=(MAXHPOS_NTSC*MAXVPOS_NTSC*VBLANK_HZ_NTSC*CYCLE_UNIT)/sound_rate + 1;
-#if !( defined(PANDORA) || defined(ANDROIDSDL) )
-			break;
-	}
-#endif
+	if (pal)
+		scaled_sample_evtime=(MAXHPOS_PAL*313*VBLANK_HZ_PAL*CYCLE_UNIT)/sound_rate;
+	else
+		scaled_sample_evtime=(MAXHPOS_NTSC*MAXVPOS_NTSC*VBLANK_HZ_NTSC*CYCLE_UNIT)/sound_rate + 1;
 
 	schedule_audio();
 }
@@ -117,7 +87,7 @@ void sound_default_evtime(void)
 
 static int s_oldrate = 0, s_oldbits = 0, s_oldstereo = 0;
 static int sound_thread_active = 0, sound_thread_exit = 0;
-static sem_t sound_sem, callback_sem;
+static uae_sem_t sound_sem, callback_sem;
 
 #define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
 static int cnt = 0;
@@ -133,15 +103,15 @@ static void sound_thread_mixer(void *ud, Uint8 *stream, int len)
 	while (sem_val > 1)
 	{
 		//printf("skip %i (%i)\n", cnt, sem_val);
-		sem_wait(&sound_sem);
+		uae_sem_wait(&sound_sem);
 		cnt++;
 		sem_getvalue(&sound_sem, &sem_val);
 	}
 	*/
 
 #ifdef SOUND_USE_SEMAPHORES
-	sem_wait(&sound_sem);
-	sem_post(&callback_sem);
+	uae_sem_wait(&sound_sem);
+	uae_sem_post(&callback_sem);
 #endif
 	cnt++;
 	//__android_log_print(ANDROID_LOG_INFO, "UAE4ALL2","Sound callback cnt %d buf %d\n", cnt, cnt%SOUND_BUFFERS_COUNT);
@@ -162,9 +132,9 @@ static int gp2x_start_sound(int rate, int bits, int stereo)
 	{
 		// init sem, start sound thread
 		printf("starting sound thread..\n");
-		ret = sem_init(&sound_sem, 0, 0);
-		sem_init(&callback_sem, 0, 0);
-		if (ret != 0) printf("sem_init() failed: %i, errno=%i\n", ret, errno);
+		uae_sem_init(&sound_sem, 0, 0);
+		uae_sem_init(&callback_sem, 0, 0);
+//		if (ret != 0) printf("uae_sem_init() failed: %i, errno=%i\n", ret, errno);
 	}
 
 	// if no settings change, we don't need to do anything
@@ -211,7 +181,7 @@ void gp2x_stop_sound(void)
 	{
 		printf("stopping sound thread..\n");
 		sound_thread_exit = 1;
-		sem_post(&sound_sem);
+		uae_sem_post(&sound_sem);
 		//usleep(100*1000);
 	}
 	SDL_PauseAudio (1);
@@ -234,8 +204,8 @@ void finish_sound_buffer (void)
 #else
 
 #ifdef SOUND_USE_SEMAPHORES
-	sem_post(&sound_sem);
-	sem_wait(&callback_sem);
+	uae_sem_post(&sound_sem);
+	uae_sem_wait(&callback_sem);
 #endif
 	wrcnt++;
 	sndbufpt = render_sndbuff = sndbuffer[wrcnt%SOUND_BUFFERS_COUNT];

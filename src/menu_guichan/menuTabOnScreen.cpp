@@ -14,6 +14,7 @@
 #include "config.h"
 
 #include "uaeradiobutton.hpp"
+#include "uaedropdown.hpp"
 
 #include "menu.h"
 #include "menu_config.h"
@@ -26,6 +27,7 @@ void setup_onscreen_pos();
 void show_settings_TabOnScreen();
 
 extern gcn::Color baseCol;
+extern gcn::Color baseColLabel;
 extern gcn::Container* top;
 extern gcn::TabbedArea* tabbedArea;
 extern gcn::Icon* icon_winlogo;
@@ -43,6 +45,9 @@ gcn::CheckBox* checkBox_onscreen_button5;
 gcn::CheckBox* checkBox_onscreen_button6;
 gcn::CheckBox* checkBox_onscreen_custompos;
 gcn::CheckBox* checkBox_FloatingJoystick;
+gcn::Container* backgrd_buttonsize;
+gcn::Label* label_buttonsize;
+gcn::UaeDropDown* dropDown_buttonsize;
 gcn::Button* button_onscreen_pos;
 gcn::Button* button_onscreen_ok;
 gcn::Button* button_onscreen_reset;
@@ -64,6 +69,27 @@ gcn::Label* label_quickSwitch_1;
 gcn::Label* label_quickSwitch_2;
 gcn::Label* label_quickSwitch_3;
 gcn::Label* label_quickSwitch_4;
+
+class ButtonsizeListModel : public gcn::ListModel
+{
+public:
+    int getNumberOfElements() {
+        return 3;
+    }
+
+    std::string getElementAt(int i) {
+        switch(i) {
+        case 0:
+            return std::string("Large");
+        case 1:
+            return std::string("Medium");
+        case 2:
+            return std::string("Small");
+        }
+        return std::string(""); // Keep the compiler happy
+    }
+};
+ButtonsizeListModel buttonsizeList;
 
 class OnScreenCheckBoxActionListener : public gcn::ActionListener
 {
@@ -139,6 +165,30 @@ public:
     }
 };
 OnScreenCheckBoxActionListener* onScreenCheckBoxActionListener;
+
+class ButtonsizeActionListener : public gcn::ActionListener
+{
+public:
+    void action(const gcn::ActionEvent& actionEvent) {
+        if (dropDown_buttonsize->getSelected()==0)
+            mainMenu_button_size = 1.2;
+        else if (dropDown_buttonsize->getSelected()==1)
+            mainMenu_button_size = 1.0;
+        else if (dropDown_buttonsize->getSelected()==2)
+            mainMenu_button_size = 0.8;
+
+        window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
+        window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
+        window_pos_button1->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        window_pos_button2->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        window_pos_button3->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        window_pos_button4->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        window_pos_button5->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        window_pos_button6->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+        show_settings_TabOnScreen();
+    }
+};
+ButtonsizeActionListener* buttonsizeActionListener;
 
 class QuickSwitchActionListener : public gcn::ActionListener
 {
@@ -260,6 +310,24 @@ void menuTabOnScreen_Init()
     checkBox_FloatingJoystick->setId("FloatJoy");
     checkBox_FloatingJoystick->addActionListener(onScreenCheckBoxActionListener);
 
+    // Size of onscreen-buttons
+    label_buttonsize = new gcn::Label("Button Size");
+    label_buttonsize->setPosition(4, 2);
+    backgrd_buttonsize = new gcn::Container();
+    backgrd_buttonsize->setOpaque(true);
+    backgrd_buttonsize->setBaseColor(baseColLabel);
+    backgrd_buttonsize->setPosition(360, 20);
+    backgrd_buttonsize->setSize(105, 21);
+    backgrd_buttonsize->add(label_buttonsize);
+    dropDown_buttonsize = new gcn::UaeDropDown(&buttonsizeList);
+    dropDown_buttonsize->setPosition(475, 20);
+    dropDown_buttonsize->setWidth(90);
+    dropDown_buttonsize->setBaseColor(baseCol);
+    dropDown_buttonsize->setId("ButtonSize");
+    buttonsizeActionListener = new ButtonsizeActionListener();
+    dropDown_buttonsize->addActionListener(buttonsizeActionListener);
+
+
     button_onscreen_pos = new gcn::Button("Position Setup");
     button_onscreen_pos->setPosition(170,180);
     button_onscreen_pos->setBaseColor(baseCol);
@@ -297,7 +365,7 @@ void menuTabOnScreen_Init()
     label_quickSwitch_4->setWidth(200);
 
     group_quickSwitch = new gcn::Window("Quick Switch via buttons");
-    group_quickSwitch->setPosition(360,20);
+    group_quickSwitch->setPosition(360,60);
     group_quickSwitch->add(radioButton_quickSwitch_off);
     group_quickSwitch->add(radioButton_quickSwitch_1);
     group_quickSwitch->add(radioButton_quickSwitch_2);
@@ -324,35 +392,35 @@ void menuTabOnScreen_Init()
 
     window_pos_textinput = new gcn::Window("Ab");
     window_pos_textinput->setMovable(true);
-    window_pos_textinput->setSize(25,30);
+    window_pos_textinput->setSize(25*mainMenu_button_size,30*mainMenu_button_size);
     window_pos_textinput->setBaseColor(baseCol);
     window_pos_dpad = new gcn::Window("Dpad");
     window_pos_dpad->setMovable(true);
-    window_pos_dpad->setSize(100,130);
+    window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
     window_pos_dpad->setBaseColor(baseCol);
     window_pos_button1 = new gcn::Window("1<A>");
     window_pos_button1->setMovable(true);
-    window_pos_button1->setSize(50,65);
+    window_pos_button1->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button1->setBaseColor(baseCol);
     window_pos_button2 = new gcn::Window("2<B>");
     window_pos_button2->setMovable(true);
-    window_pos_button2->setSize(50,65);
+    window_pos_button2->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button2->setBaseColor(baseCol);
     window_pos_button3 = new gcn::Window("3<X>");
     window_pos_button3->setMovable(true);
-    window_pos_button3->setSize(50,65);
+    window_pos_button3->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button3->setBaseColor(baseCol);
     window_pos_button4 = new gcn::Window("4<Y>");
     window_pos_button4->setMovable(true);
-    window_pos_button4->setSize(50,65);
+    window_pos_button4->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button4->setBaseColor(baseCol);
     window_pos_button5 = new gcn::Window("5<R>");
     window_pos_button5->setMovable(true);
-    window_pos_button5->setSize(50,65);
+    window_pos_button5->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button5->setBaseColor(baseCol);
     window_pos_button6 = new gcn::Window("6<L>");
     window_pos_button6->setMovable(true);
-    window_pos_button6->setSize(50,65);
+    window_pos_button6->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
     window_pos_button6->setBaseColor(baseCol);
 
     show_settings_TabOnScreen();
@@ -386,6 +454,8 @@ void menuTabOnScreen_Init()
     tab_onscreen->add(checkBox_onscreen_button6);
     tab_onscreen->add(checkBox_onscreen_custompos);
     tab_onscreen->add(checkBox_FloatingJoystick);
+    tab_onscreen->add(backgrd_buttonsize);
+    tab_onscreen->add(dropDown_buttonsize);
     tab_onscreen->add(button_onscreen_pos);
     tab_onscreen->add(group_quickSwitch);
     tab_onscreen->setSize(600,280);
@@ -406,6 +476,9 @@ void menuTabOnScreen_Exit()
     delete checkBox_onscreen_button6;
     delete checkBox_onscreen_custompos;
     delete checkBox_FloatingJoystick;
+    delete backgrd_buttonsize;
+    delete label_buttonsize;
+    delete dropDown_buttonsize;
     delete button_onscreen_pos;
     delete button_onscreen_ok;
     delete button_onscreen_reset;
@@ -429,6 +502,7 @@ void menuTabOnScreen_Exit()
     delete label_quickSwitch_4;
 
     delete onScreenCheckBoxActionListener;
+    delete buttonsizeActionListener;
     delete setupPosButtonActionListener;
     delete windowPosButtonActionListener;
     delete quickSwitchActionListener;
@@ -480,6 +554,14 @@ void show_settings_TabOnScreen()
         checkBox_FloatingJoystick->setSelected(true);
     else
         checkBox_FloatingJoystick->setSelected(false);
+
+    if(mainMenu_button_size == 1.2f)
+        dropDown_buttonsize->setSelected(0);
+    else if(mainMenu_button_size == 1.0f)
+        dropDown_buttonsize->setSelected(1);
+    else if(mainMenu_button_size == 0.8f)
+        dropDown_buttonsize->setSelected(2);
+
     if (mainMenu_quickSwitch==0) {
         radioButton_quickSwitch_off->setSelected(true);
         label_quickSwitch_1->setCaption("");

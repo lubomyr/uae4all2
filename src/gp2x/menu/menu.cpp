@@ -16,8 +16,6 @@
 #include "fade.h"
 #include "xwin.h"
 
-#include <SDL_gfxPrimitives.h>
-
 #include <SDL_gp2x.h>
 
 extern int bReloadKickstart;

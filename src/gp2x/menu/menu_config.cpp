@@ -129,6 +129,7 @@ int mainMenu_pos_x_button5 = 430;
 int mainMenu_pos_y_button5 = 142;
 int mainMenu_pos_x_button6 = 378;
 int mainMenu_pos_y_button6 = 142;
+float mainMenu_button_size = 1.0;
 int menuLoad_extfilter=1;
 int mainMenu_quickSwitch=0;
 int mainMenu_FloatingJoystick=0;
@@ -995,10 +996,12 @@ int saveconfig(int general)
     fputs(buffer,f);
     snprintf((char*)buffer, 255, "FloatingJoystick=%d\n",mainMenu_FloatingJoystick);
     fputs(buffer,f);
+    snprintf((char*)buffer, 255, "button_size=%f\n",mainMenu_button_size);
+    fputs(buffer,f);
 #endif
 #if defined(ANDROIDSDL) || defined(AROS)
-	snprintf((char*)buffer, 255, "VSync=%d\n",mainMenu_vsync);
- 	fputs(buffer,f);
+    snprintf((char*)buffer, 255, "VSync=%d\n",mainMenu_vsync);
+    fputs(buffer,f);
 #endif
 
     char namebuffer[256];
@@ -1235,9 +1238,10 @@ void loadconfig(int general)
         fscanf(f,"pos_y_button6=%d\n",&mainMenu_pos_y_button6);
         fscanf(f,"quick_switch=%d\n",&mainMenu_quickSwitch);
         fscanf(f,"FloatingJoystick=%d\n",&mainMenu_FloatingJoystick);
+        fscanf(f,"button_size=%f\n",&mainMenu_button_size);
 #endif
 #if defined(ANDROIDSDL) || defined(AROS)
-		fscanf(f,"VSync=%d\n",&mainMenu_vsync);
+        fscanf(f,"VSync=%d\n",&mainMenu_vsync);
 #endif
         memset(filebuffer, 0, 256);
         fscanf(f,"custom_kickrom=%s\n",&filebuffer);
