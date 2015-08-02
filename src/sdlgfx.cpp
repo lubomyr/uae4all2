@@ -740,7 +740,11 @@ void handle_events (void)
                     buttonstate[2] = 0;
                 }
             }
+#ifdef ANDROIDSDL
+            if (rEvent.key.keysym.sym==SDLK_F11) {
+#else
             if (rEvent.key.keysym.sym==SDLK_LALT) {
+#endif
                 show_inputmode = 0;
             }
             if (rEvent.key.keysym.sym!=SDLK_UP && rEvent.key.keysym.sym!=SDLK_DOWN && rEvent.key.keysym.sym!=SDLK_LEFT &&
