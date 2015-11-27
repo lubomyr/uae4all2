@@ -114,7 +114,7 @@ void default_prefs ()
 #ifdef ANDROIDSDL
 	if (uae4all_init_rom(romfile)==-1)
 	{
-	  snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+	  snprintf(romfile, 256, "%s/Android/data/com.cloanto.amigaforever.essentials/files/rom/%s",getenv("SDCARD"),af_kickstarts_rom_names[kickstart]);
 	  FILE *f3=fopen (romfile, "r" );
 	  if(!f3)
 	  {
@@ -122,7 +122,7 @@ void default_prefs ()
 	  }
 	  else fclose(f3);
 	  
-	  snprintf(romkeyfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,"rom.key");	
+	  snprintf(romkeyfile, 256, "%s/Android/data/com.cloanto.amigaforever.essentials/files/rom/%s",getenv("SDCARD"),"rom.key");	
 	  FILE *f4=fopen (romkeyfile, "r" );
 	  if(!f4)
 	  {

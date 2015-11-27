@@ -170,22 +170,22 @@ class ButtonsizeActionListener : public gcn::ActionListener
 {
 public:
     void action(const gcn::ActionEvent& actionEvent) {
-        if (dropDown_buttonsize->getSelected()==0)
-            mainMenu_button_size = 1.2;
-        else if (dropDown_buttonsize->getSelected()==1)
-            mainMenu_button_size = 1.0;
-        else if (dropDown_buttonsize->getSelected()==2)
-            mainMenu_button_size = 0.8;
+      if (dropDown_buttonsize->getSelected()==0)
+        mainMenu_button_size = 1.2;
+      else if (dropDown_buttonsize->getSelected()==1)
+        mainMenu_button_size = 1.0;
+      else if (dropDown_buttonsize->getSelected()==2)
+        mainMenu_button_size = 0.8;
 
-        window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
-        window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
-        window_pos_button1->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        window_pos_button2->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        window_pos_button3->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        window_pos_button4->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        window_pos_button5->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        window_pos_button6->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
-        show_settings_TabOnScreen();
+      window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
+      window_pos_dpad->setSize(100*mainMenu_button_size,130*mainMenu_button_size);
+      window_pos_button1->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      window_pos_button2->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      window_pos_button3->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      window_pos_button4->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      window_pos_button5->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      window_pos_button6->setSize(50*mainMenu_button_size,65*mainMenu_button_size);
+      show_settings_TabOnScreen();
     }
 };
 ButtonsizeActionListener* buttonsizeActionListener;
@@ -326,8 +326,8 @@ void menuTabOnScreen_Init()
     dropDown_buttonsize->setId("ButtonSize");
     buttonsizeActionListener = new ButtonsizeActionListener();
     dropDown_buttonsize->addActionListener(buttonsizeActionListener);
-
-
+    
+    
     button_onscreen_pos = new gcn::Button("Position Setup");
     button_onscreen_pos->setPosition(170,180);
     button_onscreen_pos->setBaseColor(baseCol);
@@ -554,14 +554,14 @@ void show_settings_TabOnScreen()
         checkBox_FloatingJoystick->setSelected(true);
     else
         checkBox_FloatingJoystick->setSelected(false);
-
+    
     if(mainMenu_button_size == 1.2f)
         dropDown_buttonsize->setSelected(0);
     else if(mainMenu_button_size == 1.0f)
         dropDown_buttonsize->setSelected(1);
     else if(mainMenu_button_size == 0.8f)
         dropDown_buttonsize->setSelected(2);
-
+    
     if (mainMenu_quickSwitch==0) {
         radioButton_quickSwitch_off->setSelected(true);
         label_quickSwitch_1->setCaption("");

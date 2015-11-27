@@ -1000,8 +1000,8 @@ int saveconfig(int general)
     fputs(buffer,f);
 #endif
 #if defined(ANDROIDSDL) || defined(AROS)
-    snprintf((char*)buffer, 255, "VSync=%d\n",mainMenu_vsync);
-    fputs(buffer,f);
+	snprintf((char*)buffer, 255, "VSync=%d\n",mainMenu_vsync);
+ 	fputs(buffer,f);
 #endif
 
     char namebuffer[256];
@@ -1241,7 +1241,7 @@ void loadconfig(int general)
         fscanf(f,"button_size=%f\n",&mainMenu_button_size);
 #endif
 #if defined(ANDROIDSDL) || defined(AROS)
-        fscanf(f,"VSync=%d\n",&mainMenu_vsync);
+		fscanf(f,"VSync=%d\n",&mainMenu_vsync);
 #endif
         memset(filebuffer, 0, 256);
         fscanf(f,"custom_kickrom=%s\n",&filebuffer);

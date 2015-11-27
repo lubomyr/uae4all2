@@ -75,7 +75,7 @@ bool CheckKickstart()
 {
     if (kickstart!=5) {
 #ifdef ANDROIDSDL
-        snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+        snprintf(romfile, 256, "%s/Android/data/com.cloanto.amigaforever.essentials/files/rom/%s",getenv("SDCARD"),af_kickstarts_rom_names[kickstart]);
         FILE *f_afs=fopen (romfile, "r" );
         if(f_afs) {
             fclose(f_afs);
@@ -1016,7 +1016,7 @@ int run_mainMenuGuichan()
                 bReloadKickstart = 1;
                 if(uae4all_init_rom(romfile) == -1) {
 #ifdef ANDROIDSDL
-                    snprintf(romfile, 256, "%s/../../com.cloanto.amigaforever.essentials/files/rom/%s",launchDir,af_kickstarts_rom_names[kickstart]);
+                    snprintf(romfile, 256, "%s/Android/data/com.cloanto.amigaforever.essentials/files/rom/%s",getenv("SDCARD"),af_kickstarts_rom_names[kickstart]);
                     uae4all_init_rom(romfile);
 #endif
                 }

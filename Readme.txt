@@ -18,14 +18,14 @@ On-screen scheme
 '2'- <Button B> Right mouse click [END]
 '3'- <Button X> joystick fire/left click [PAGEDOWN]
 '4'- <Button Y> [PAGEUP]
-'5' <Button L> [SDLK_RSHIFT]
+'5' <Button L> [SDLK_F13]
 '6' <Button R> [SDLK_RCTRL]
 old textUI vkeybd - '2'+'4'
  
 SDL keycode action:
 F15 textUI vkeybd
-LCTRL - emulator menu toggle 
-LALT - change input method
+F12 - emulator menu toggle 
+F11 - change input method
 
 Please put kickstarts files in android/data/pandora.uae4all.sdl/kickstarts directory.
 Files must be named as kick13.rom kick20.rom kick31.rom
