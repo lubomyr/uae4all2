@@ -431,7 +431,6 @@ gcn::ImageFont* font;
 gcn::contrib::SDLTrueTypeFont* font;
 #endif
 #ifdef ANDROIDSDL
-gcn::contrib::SDLTrueTypeFont* font2;
 gcn::contrib::SDLTrueTypeFont* font14;
 #endif
 gcn::Image *background_image;
@@ -590,7 +589,6 @@ void init()
     TTF_Init();
 #ifdef ANDROIDSDL
     font = new gcn::contrib::SDLTrueTypeFont("data/FreeSans.ttf", 16);
-    font2 = new gcn::contrib::SDLTrueTypeFont("data/FreeNina.ttf", 16);
     font14 = new gcn::contrib::SDLTrueTypeFont("data/FreeSans.ttf", 14);
 #elif RASPBERRY
     font = new gcn::ImageFont("data/fixedfont.bmp"," abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-()[]+'");
@@ -826,7 +824,6 @@ void halt()
     delete font;
 #ifdef ANDROIDSDL
     delete font14;
-    delete font2;
 #endif
     delete top;
 

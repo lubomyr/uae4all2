@@ -42,7 +42,7 @@ extern gcn::Icon* icon_winlogo;
 extern gcn::Widget* activateAfterClose;
 
 #ifdef ANDROIDSDL
-extern gcn::contrib::SDLTrueTypeFont* font2;
+extern gcn::contrib::SDLTrueTypeFont* font14;
 #endif
 
 // Tab Main
@@ -310,8 +310,8 @@ void menuTabMain_Init()
     radioButton_cpu68020->setPosition(5,40);
     radioButton_cpu68020->setId("68020");
 #ifdef ANDROIDSDL
-    radioButton_cpu68000->setFont(font2);
-    radioButton_cpu68020->setFont(font2);
+    radioButton_cpu68000->setFont(font14);
+    radioButton_cpu68020->setFont(font14);
 #endif
     cpuButtonActionListener = new CPUButtonActionListener();
     radioButton_cpu68000->addActionListener(cpuButtonActionListener);
@@ -375,9 +375,9 @@ void menuTabMain_Init()
     radioButton_bm_improved->setPosition(75,35);
     radioButton_bm_improved->setId("BM_improved");
 #ifdef ANDROIDSDL
-    radioButton_bm_normal->setFont(font2);
-    radioButton_bm_immediate->setFont(font2);
-    radioButton_bm_improved->setFont(font2);
+    radioButton_bm_normal->setFont(font14);
+    radioButton_bm_immediate->setFont(font14);
+    radioButton_bm_improved->setFont(font14);
 #endif
     blitterModeActionListener = new BlitterModeActionListener();
     radioButton_bm_normal->addActionListener(blitterModeActionListener);
@@ -437,7 +437,7 @@ void menuTabMain_Init()
     button_kickrom->setSize(90,22);
     button_kickrom->setPosition(105,243);
 #ifdef ANDROIDSDL
-    button_kickrom->setFont(font2);
+    button_kickrom->setFont(font14);
 #endif
     button_kickrom->setBaseColor(baseCol);
     button_kickrom->setId("BrowseROM");
@@ -469,11 +469,11 @@ void menuTabMain_Init()
     radioButton_cpuspeed_112Mhz->setId("112MHz");
 #endif
 #ifdef ANDROIDSDL
-    radioButton_cpuspeed_7Mhz->setFont(font2);
-    radioButton_cpuspeed_14Mhz->setFont(font2);
-    radioButton_cpuspeed_28Mhz->setFont(font2);
-    radioButton_cpuspeed_56Mhz->setFont(font2);
-    radioButton_cpuspeed_112Mhz->setFont(font2);
+    radioButton_cpuspeed_7Mhz->setFont(font14);
+    radioButton_cpuspeed_14Mhz->setFont(font14);
+    radioButton_cpuspeed_28Mhz->setFont(font14);
+    radioButton_cpuspeed_56Mhz->setFont(font14);
+    radioButton_cpuspeed_112Mhz->setFont(font14);
 #endif
     cpuSpeedButtonActionListener = new CPUSpeedButtonActionListener();
     radioButton_cpuspeed_7Mhz->addActionListener(cpuSpeedButtonActionListener);
